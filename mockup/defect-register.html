@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하자 이걸로 - 하자 등록</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .register-form {
+      max-width: 720px;
+    }
+    .photo-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .photo-preview-item {
+      aspect-ratio: 1;
+      background: var(--gray-200);
+      border-radius: var(--border-radius-sm);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .photo-preview-item .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 18px;
+      height: 18px;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-processing {
+      display: none;
+      padding: 24px;
+      text-align: center;
+    }
+    .ai-processing.active {
+      display: block;
+    }
+    .ai-processing .spinner {
+      width: 32px;
+      height: 32px;
+      margin-bottom: 12px;
+    }
+    .ai-processing .ai-step {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin-top: 8px;
+    }
+    .ai-processing .ai-step.done {
+      color: var(--status-verified);
+    }
+    .ai-processing .ai-step.active-step {
+      color: var(--primary-600);
+      font-weight: 500;
+    }
+    .step-content {
+      display: none;
+    }
+    .step-content.active {
+      display: block;
+    }
+    .similar-case-item {
+      padding: 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius-sm);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .similar-case-item:hover {
+      border-color: var(--primary-300);
+      background: var(--primary-50);
+    }
+    .similar-case-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .similarity-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--primary-50);
+      color: var(--primary-600);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-content">
+      <header class="top-header" id="topHeader"></header>
+
+      <div class="page-body">
+        <div class="register-form">
+          <!-- Step wizard -->
+          <div class="step-wizard" id="stepWizard">
+            <div class="step-item active" data-step="1">
+              <span class="step-label">사진 촬영</span>
+            </div>
+            <div class="step-item" data-step="2">
+              <span class="step-label">위치 입력</span>
+            </div>
+            <div class="step-item" data-step="3">
+              <span class="step-label">AI 분류</span>
+            </div>
+            <div class="step-item" data-step="4">
+              <span class="step-label">확인/저장</span>
+            </div>
+          </div>
+
+          <!-- Step 1: Photo -->
+          <div class="step-content active" id="step1">
+            <div class="card">
+              <div class="card-header">
+                <h3>하자 사진 촬영/업로드</h3>
+              </div>
+              <div class="card-body">
+                <div class="photo-upload-area" id="uploadArea" onclick="simulatePhotoUpload()">
+                  <div class="upload-icon">&#128247;</div>
+                  <div class="upload-text">사진을 촬영하거나 파일을 선택하세요</div>
+                  <div class="upload-hint">최대 10장, JPG/PNG, 장당 10MB 이하</div>
+                </div>
+
+                <div class="photo-preview-grid" id="photoPreview"></div>
+
+                <div class="form-group mt-16">
+                  <label class="form-label">추가 설명 (선택)</label>
+                  <textarea class="form-textarea" id="descriptionInput" rows="3" placeholder="하자 상태를 간략히 설명해주세요 (AI가 사진을 분석하므로 필수가 아닙니다)"></textarea>
+                </div>
+              </div>
+              <div class="card-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn btn-primary" onclick="goToStep(2)" id="step1Next" disabled>다음: 위치 입력</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Location -->
+          <div class="step-content" id="step2">
+            <div class="card">
+              <div class="card-header">
+                <h3>위치 정보</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label form-required">동</label>
+                    <select class="form-select" id="buildingSelect">
+                      <option value="">동 선택</option>
+                      <option value="101">101동</option>
+                      <option value="102">102동</option>
+                      <option value="103">103동</option>
+                      <option value="104">104동</option>
+                      <option value="105">105동</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label form-required">호</label>
+                    <input type="text" class="form-input" id="unitInput" placeholder="예: 301">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label form-required">실</label>
+                    <select class="form-select" id="roomSelect">
+                      <option value="">실 선택</option>
+                      <option value="거실">거실</option>
+                      <option value="안방">안방</option>
+                      <option value="작은방1">작은방1</option>
+                      <option value="작은방2">작은방2</option>
+                      <option value="주방">주방</option>
+                      <option value="욕실">욕실</option>
+                      <option value="현관">현관</option>
+                      <option value="발코니">발코니</option>
+                      <option value="드레스룸">드레스룸</option>
+                      <option value="다용도실">다용도실</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">부위</label>
+                    <select class="form-select" id="positionSelect">
+                      <option value="">부위 선택</option>
+                      <option value="천장">천장</option>
+                      <option value="벽">벽</option>
+                      <option value="바닥">바닥</option>
+                      <option value="창">창</option>
+                      <option value="문">문</option>
+                      <option value="가구">가구</option>
+                      <option value="설비">설비</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">점검 단계</label>
+                  <select class="form-select" id="phaseSelect">
+                    <option value="pre_check" selected>사전점검</option>
+                    <option value="quality_check">품질검수</option>
+                    <option value="movein">입주점검</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="urgentCheck">
+                    <span class="text-sm" style="color: var(--status-rejected); font-weight: 500;">긴급 하자로 표시</span>
+                  </label>
+                  <div class="form-hint">누수, 안전 위험 등 즉시 대응이 필요한 경우 체크</div>
+                </div>
+              </div>
+              <div class="card-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" onclick="goToStep(1)">이전</button>
+                <button class="btn btn-primary" onclick="goToStep(3)">다음: AI 분류 시작</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: AI Classification -->
+          <div class="step-content" id="step3">
+            <div class="card">
+              <div class="card-header">
+                <h3>AI 자동 분류</h3>
+              </div>
+              <div class="card-body">
+                <!-- Processing animation -->
+                <div class="ai-processing" id="aiProcessing">
+                  <div class="spinner"></div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--gray-700);">AI가 사진을 분석하고 있습니다</div>
+                  <div style="margin-top: 16px; text-align: left; max-width: 300px; margin-left: auto; margin-right: auto;">
+                    <div class="ai-step" id="aiStep1">1. 이미지 전처리...</div>
+                    <div class="ai-step" id="aiStep2">2. Vision AI 분석 중...</div>
+                    <div class="ai-step" id="aiStep3">3. 공종/유형/심각도 분류 중...</div>
+                    <div class="ai-step" id="aiStep4">4. 유사 사례 검색 중...</div>
+                  </div>
+                </div>
+
+                <!-- Result (hidden initially) -->
+                <div id="aiResult" style="display: none;">
+                  <div class="ai-result-card">
+                    <div class="ai-label">AI 분류 결과</div>
+                    <div class="ai-result-grid">
+                      <div class="ai-result-item">
+                        <div class="ai-item-label">공종</div>
+                        <div class="ai-item-value" id="aiWorkType">도장</div>
+                      </div>
+                      <div class="ai-result-item">
+                        <div class="ai-item-label">하자유형</div>
+                        <div class="ai-item-value" id="aiDefectType">균열</div>
+                      </div>
+                      <div class="ai-result-item">
+                        <div class="ai-item-label">심각도</div>
+                        <div class="ai-item-value" id="aiSeverity">Level 3 (중대)</div>
+                      </div>
+                    </div>
+                    <div class="ai-confidence">
+                      <span>신뢰도</span>
+                      <div class="confidence-bar">
+                        <div class="confidence-fill" id="aiConfBar" style="width: 94%"></div>
+                      </div>
+                      <span id="aiConfValue">94%</span>
+                    </div>
+                  </div>
+
+                  <!-- User can override -->
+                  <div class="mt-16" style="padding: 14px; background: var(--gray-50); border-radius: var(--border-radius); border: 1px solid var(--gray-200);">
+                    <div class="text-xs text-muted mb-8" style="font-weight: 600;">AI 결과가 맞지 않으면 수정하세요</div>
+                    <div class="form-row">
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">공종</label>
+                        <select class="form-select" id="overrideWorkType">
+                          ${MOCK.workTypes.map(w => `<option value="${w}" ${w === '도장' ? 'selected' : ''}>${w}</option>`).join('')}
+                        </select>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">심각도</label>
+                        <select class="form-select" id="overrideSeverity">
+                          <option value="1">Level 1 - 경미</option>
+                          <option value="2">Level 2 - 보통</option>
+                          <option value="3" selected>Level 3 - 중대</option>
+                          <option value="4">Level 4 - 긴급</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Similar cases from RAG -->
+                  <div class="mt-16">
+                    <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--gray-700);">유사 사례 (AI 추천)</h4>
+                    <div id="similarCases"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" onclick="goToStep(2)">이전</button>
+                <button class="btn btn-primary" onclick="goToStep(4)" id="step3Next" disabled>다음: 확인 및 저장</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Confirm -->
+          <div class="step-content" id="step4">
+            <div class="card">
+              <div class="card-header">
+                <h3>등록 확인</h3>
+              </div>
+              <div class="card-body">
+                <div id="confirmSummary"></div>
+              </div>
+              <div class="card-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" onclick="goToStep(3)">이전</button>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" onclick="saveDraft()">임시저장</button>
+                  <button class="btn btn-primary" onclick="submitDefect()" id="submitBtn">등록하기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    let uploadedPhotos = [];
+    let currentStep = 1;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHeader('하자 등록', [
+        { label: '대시보드', href: 'dashboard.html' },
+        { label: '하자 등록' }
+      ]);
+    });
+
+    function simulatePhotoUpload() {
+      // Simulate adding photos
+      const names = ['crack_ceiling.jpg', 'crack_detail.jpg', 'crack_wide.jpg'];
+      if (uploadedPhotos.length >= 3) return;
+
+      const name = names[uploadedPhotos.length];
+      uploadedPhotos.push({ name, size: '2.4MB' });
+
+      renderPhotoPreview();
+      document.getElementById('step1Next').disabled = false;
+    }
+
+    function renderPhotoPreview() {
+      const grid = document.getElementById('photoPreview');
+      grid.innerHTML = uploadedPhotos.map((p, i) => `
+        <div class="photo-preview-item" style="background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-300) 100%);">
+          <span style="font-size: 10px; text-align: center; padding: 4px;">${p.name}<br>${p.size}</span>
+          <button class="remove-btn" onclick="removePhoto(${i}); event.stopPropagation();">x</button>
+        </div>
+      `).join('');
+    }
+
+    function removePhoto(index) {
+      uploadedPhotos.splice(index, 1);
+      renderPhotoPreview();
+      if (uploadedPhotos.length === 0) {
+        document.getElementById('step1Next').disabled = true;
+      }
+    }
+
+    function goToStep(step) {
+      // Update wizard
+      document.querySelectorAll('.step-item').forEach((el, i) => {
+        el.classList.remove('active', 'done');
+        if (i + 1 < step) el.classList.add('done');
+        if (i + 1 === step) el.classList.add('active');
+      });
+
+      // Update content
+      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+      document.getElementById(`step${step}`).classList.add('active');
+
+      // Trigger AI classification on step 3
+      if (step === 3 && currentStep !== 3) {
+        runAiClassification();
+      }
+
+      // Build confirmation on step 4
+      if (step === 4) {
+        buildConfirmation();
+      }
+
+      currentStep = step;
+    }
+
+    function runAiClassification() {
+      const processing = document.getElementById('aiProcessing');
+      const result = document.getElementById('aiResult');
+      const nextBtn = document.getElementById('step3Next');
+
+      processing.style.display = 'block';
+      processing.classList.add('active');
+      result.style.display = 'none';
+      nextBtn.disabled = true;
+
+      const steps = ['aiStep1', 'aiStep2', 'aiStep3', 'aiStep4'];
+      let i = 0;
+
+      function nextStep() {
+        if (i > 0) {
+          document.getElementById(steps[i - 1]).classList.remove('active-step');
+          document.getElementById(steps[i - 1]).classList.add('done');
+          document.getElementById(steps[i - 1]).textContent = document.getElementById(steps[i - 1]).textContent.replace('...', ' (완료)');
+        }
+
+        if (i < steps.length) {
+          document.getElementById(steps[i]).classList.add('active-step');
+          i++;
+          setTimeout(nextStep, 600 + Math.random() * 500);
+        } else {
+          // Show result
+          processing.style.display = 'none';
+          result.style.display = 'block';
+          nextBtn.disabled = false;
+
+          // Render similar cases
+          const cases = MOCK.getSimilarCases('도장', '균열');
+          document.getElementById('similarCases').innerHTML = cases.map(c => `
+            <div class="similar-case-item">
+              <div class="similar-case-header">
+                <span class="text-sm" style="font-weight: 500;">${c.project}</span>
+                <span class="similarity-badge">유사도 ${c.similarity}%</span>
+              </div>
+              <div class="text-xs text-muted">${c.workType} > ${c.defectType} | 조치: ${c.resolution} | 소요: ${c.duration}</div>
+            </div>
+          `).join('');
+
+          showToast('AI 분류가 완료되었습니다');
+        }
+      }
+
+      setTimeout(nextStep, 400);
+    }
+
+    function buildConfirmation() {
+      const building = document.getElementById('buildingSelect').value || '101';
+      const unit = document.getElementById('unitInput').value || '301';
+      const room = document.getElementById('roomSelect').value || '거실';
+      const position = document.getElementById('positionSelect').value || '천장';
+      const desc = document.getElementById('descriptionInput').value || '(사진 기반 AI 분석)';
+      const workType = document.getElementById('overrideWorkType').value;
+      const severity = document.getElementById('overrideSeverity').value;
+      const sevLabels = { '1': '경미', '2': '보통', '3': '중대', '4': '긴급' };
+      const isUrgent = document.getElementById('urgentCheck').checked;
+
+      document.getElementById('confirmSummary').innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px 0; width: 120px; font-size: 12px; color: var(--gray-500); vertical-align: top; border-bottom: 1px solid var(--gray-100);">프로젝트</td>
+            <td style="padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100);">${MOCK.currentProject.name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-size: 12px; color: var(--gray-500); border-bottom: 1px solid var(--gray-100);">위치</td>
+            <td style="padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100);">${building}동 ${unit}호 ${room} ${position}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-size: 12px; color: var(--gray-500); border-bottom: 1px solid var(--gray-100);">사진</td>
+            <td style="padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100);">${uploadedPhotos.length}장 첨부</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-size: 12px; color: var(--gray-500); border-bottom: 1px solid var(--gray-100);">공종</td>
+            <td style="padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100);">${workType}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-size: 12px; color: var(--gray-500); border-bottom: 1px solid var(--gray-100);">심각도</td>
+            <td style="padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100);">
+              <span class="severity-badge severity-${severity}">Level ${severity} - ${sevLabels[severity]}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; font-size: 12px; color: var(--gray-500); border-bottom: 1px solid var(--gray-100);">설명</td>
+            <td style="padding: 10px 0; font-size: 13px; border-bottom: 1px solid var(--gray-100);">${desc}</td>
+          </tr>
+          ${isUrgent ? `
+          <tr>
+            <td style="padding: 10px 0; font-size: 12px; color: var(--gray-500);">긴급</td>
+            <td style="padding: 10px 0; font-size: 13px;"><span style="color: var(--status-rejected); font-weight: 500;">긴급 하자</span></td>
+          </tr>
+          ` : ''}
+        </table>
+
+        <div class="ai-result-card mt-16">
+          <div class="ai-label">처리 예정 (AI 자동)</div>
+          <div class="text-sm" style="color: var(--gray-600); line-height: 1.8;">
+            1. 접수번호 자동 부여<br>
+            2. AI 분류 결과 저장 (신뢰도 94%)<br>
+            3. 시공사 자동 배정 (공종: ${workType})<br>
+            4. 시공사 알림 발송 (SMS/알림톡)
+          </div>
+        </div>
+      `;
+    }
+
+    function saveDraft() {
+      showToast('임시저장 되었습니다');
+    }
+
+    function submitDefect() {
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = '<span class="spinner"></span> 등록 중...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        showToast('하자가 등록되었습니다. 접수번호: 260131-0013');
+        setTimeout(() => {
+          window.location.href = 'defect-list.html';
+        }, 1500);
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하자 이걸로 - 하자 상세</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .detail-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .info-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .info-item .info-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-bottom: 3px;
+    }
+    .info-item .info-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+    .photo-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .photo-gallery-item {
+      aspect-ratio: 4/3;
+      background: var(--gray-200);
+      border-radius: var(--border-radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--gray-500);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition);
+    }
+    .photo-gallery-item:hover {
+      box-shadow: var(--shadow-md);
+    }
+    .photo-gallery-item .photo-type-label {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      font-size: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 1px 6px;
+      border-radius: 2px;
+    }
+    .state-flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+    .state-node {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--gray-100);
+      color: var(--gray-500);
+      white-space: nowrap;
+    }
+    .state-node.current {
+      background: var(--primary-600);
+      color: #fff;
+    }
+    .state-node.done {
+      background: var(--gray-200);
+      color: var(--gray-700);
+    }
+    .state-arrow {
+      font-size: 14px;
+      color: var(--gray-400);
+      padding: 0 4px;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .comment-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .comment-item:last-child { border-bottom: none; }
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .comment-author {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    .comment-time {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .comment-text {
+      font-size: 13px;
+      color: var(--gray-700);
+      line-height: 1.5;
+    }
+    @media (max-width: 768px) {
+      .detail-layout {
+        grid-template-columns: 1fr;
+      }
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      .state-flow {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .state-arrow {
+        transform: rotate(90deg);
+        padding: 2px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-content">
+      <header class="top-header" id="topHeader"></header>
+
+      <div class="page-body">
+        <!-- Defect header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+              <span class="font-mono" style="font-size: 18px; font-weight: 700; color: var(--gray-900);" id="detailReceiptNum"></span>
+              <span id="detailStatus"></span>
+              <span id="detailSeverity"></span>
+              <span id="detailUrgent"></span>
+            </div>
+            <div class="text-sm text-muted" id="detailLocation"></div>
+          </div>
+          <div class="action-buttons" id="actionButtons"></div>
+        </div>
+
+        <!-- State flow -->
+        <div class="card mb-16">
+          <div class="card-body" style="padding: 8px 16px;">
+            <div class="state-flow" id="stateFlow"></div>
+          </div>
+        </div>
+
+        <!-- Two column layout -->
+        <div class="detail-layout">
+          <!-- Left: Main info -->
+          <div>
+            <!-- Description -->
+            <div class="card mb-16">
+              <div class="card-header">
+                <h3>하자 내용</h3>
+              </div>
+              <div class="card-body">
+                <p id="detailDescription" style="font-size: 14px; line-height: 1.7; color: var(--gray-700);"></p>
+              </div>
+            </div>
+
+            <!-- Photos -->
+            <div class="card mb-16">
+              <div class="card-header">
+                <h3>첨부 사진</h3>
+                <span class="text-sm text-muted" id="photoCount"></span>
+              </div>
+              <div class="card-body">
+                <div class="text-xs text-muted mb-8" style="font-weight: 600;">하자 사진 (보수 전)</div>
+                <div class="photo-gallery" id="beforePhotos"></div>
+
+                <div class="text-xs text-muted mb-8 mt-16" style="font-weight: 600;">보수 완료 사진</div>
+                <div class="photo-gallery" id="afterPhotos"></div>
+              </div>
+            </div>
+
+            <!-- Detail info -->
+            <div class="card mb-16">
+              <div class="card-header">
+                <h3>상세 정보</h3>
+              </div>
+              <div class="card-body" style="padding: 0;">
+                <div class="info-grid" id="detailInfoGrid"></div>
+              </div>
+            </div>
+
+            <!-- AI Classification -->
+            <div class="card mb-16">
+              <div class="card-header">
+                <h3>AI 분류 결과</h3>
+              </div>
+              <div class="card-body" id="aiClassification"></div>
+            </div>
+
+            <!-- Comments -->
+            <div class="card">
+              <div class="card-header">
+                <h3>처리 의견</h3>
+              </div>
+              <div class="card-body" id="commentsSection"></div>
+              <div class="card-footer">
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" class="form-input" id="commentInput" placeholder="의견을 입력하세요..." style="flex: 1;">
+                  <button class="btn btn-primary btn-sm" onclick="addComment()">등록</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Sidebar -->
+          <div>
+            <!-- Contractor info -->
+            <div class="card mb-16">
+              <div class="card-header">
+                <h3>시공사 정보</h3>
+              </div>
+              <div class="card-body" id="contractorInfo"></div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="card mb-16">
+              <div class="card-header">
+                <h3>처리 이력</h3>
+              </div>
+              <div class="card-body">
+                <div class="timeline" id="historyTimeline"></div>
+              </div>
+            </div>
+
+            <!-- Similar cases -->
+            <div class="card">
+              <div class="card-header">
+                <h3>유사 사례</h3>
+              </div>
+              <div class="card-body" id="similarCasesPanel"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status change modal -->
+  <div class="modal-overlay" id="statusModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">상태 변경</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    let currentDefect = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const id = getUrlParam('id') || 'd001';
+      currentDefect = MOCK.defects.find(d => d.id === id) || MOCK.defects[0];
+
+      renderHeader('하자 상세', [
+        { label: '대시보드', href: 'dashboard.html' },
+        { label: '하자 목록', href: 'defect-list.html' },
+        { label: currentDefect.receiptNumber }
+      ]);
+
+      renderDetail();
+    });
+
+    function renderDetail() {
+      const d = currentDefect;
+
+      // Header
+      document.getElementById('detailReceiptNum').textContent = d.receiptNumber;
+      document.getElementById('detailStatus').innerHTML = statusBadge(d.status);
+      document.getElementById('detailSeverity').innerHTML = severityBadge(d.severity);
+      document.getElementById('detailUrgent').innerHTML = d.isUrgent ? '<span class="status-badge rejected" style="font-size: 10px;">긴급</span>' : '';
+      document.getElementById('detailLocation').textContent = `${MOCK.currentProject.name} > ${d.building}동 ${d.unit}호 ${d.room} ${d.position}`;
+
+      // Action buttons based on status
+      const actions = getAvailableActions(d.status);
+      document.getElementById('actionButtons').innerHTML = actions.map(a =>
+        `<button class="btn ${a.class}" onclick="${a.action}">${a.label}</button>`
+      ).join('') + `<button class="btn btn-secondary btn-sm" onclick="window.print()">인쇄</button>`;
+
+      // State flow
+      const allStates = ['PENDING', 'RECEIVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CLOSED'];
+      const currentIdx = allStates.indexOf(d.status === 'REJECTED' ? 'COMPLETED' : d.status);
+      let flowHTML = '';
+      allStates.forEach((s, i) => {
+        const label = MOCK.statuses[s].label;
+        let cls = '';
+        if (s === d.status) cls = 'current';
+        else if (i < currentIdx) cls = 'done';
+        flowHTML += `<div class="state-node ${cls}">${label}</div>`;
+        if (i < allStates.length - 1) flowHTML += `<span class="state-arrow">&rarr;</span>`;
+      });
+      if (d.status === 'REJECTED') {
+        flowHTML += `<span class="state-arrow">&larr;</span><div class="state-node current" style="background: var(--status-rejected);">반려</div>`;
+      }
+      document.getElementById('stateFlow').innerHTML = flowHTML;
+
+      // Description
+      document.getElementById('detailDescription').textContent = d.description;
+
+      // Photos
+      document.getElementById('photoCount').textContent = `${d.images}장`;
+      let beforeHTML = '';
+      for (let i = 0; i < d.images; i++) {
+        beforeHTML += `
+          <div class="photo-gallery-item" style="background: linear-gradient(135deg, #ddd 0%, #bbb 100%);">
+            <span>하자사진_${i+1}.jpg</span>
+            <span class="photo-type-label">보수전</span>
+          </div>
+        `;
+      }
+      document.getElementById('beforePhotos').innerHTML = beforeHTML;
+
+      // After photos (only if completed+)
+      if (['COMPLETED', 'VERIFIED', 'CLOSED'].includes(d.status)) {
+        document.getElementById('afterPhotos').innerHTML = `
+          <div class="photo-gallery-item" style="background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);">
+            <span>보수완료_1.jpg</span>
+            <span class="photo-type-label">보수후</span>
+          </div>
+        `;
+      } else {
+        document.getElementById('afterPhotos').innerHTML = `
+          <div style="padding: 16px; text-align: center; color: var(--gray-400); font-size: 12px; border: 1px dashed var(--gray-300); border-radius: var(--border-radius-sm);">
+            보수 완료 후 사진이 등록됩니다
+          </div>
+        `;
+      }
+
+      // Detail info grid
+      document.getElementById('detailInfoGrid').innerHTML = `
+        <div class="info-item">
+          <div class="info-label">접수번호</div>
+          <div class="info-value font-mono">${d.receiptNumber}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">프로젝트</div>
+          <div class="info-value">${MOCK.currentProject.name}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">동/호</div>
+          <div class="info-value">${d.building}동 ${d.unit}호</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">실/부위</div>
+          <div class="info-value">${d.room} ${d.position}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">공종</div>
+          <div class="info-value">${d.workType}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">하자유형</div>
+          <div class="info-value">${d.defectType}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">점검 단계</div>
+          <div class="info-value">${{pre_check: '사전점검', quality_check: '품질검수', movein: '입주점검'}[d.phase]}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">등록자</div>
+          <div class="info-value">${d.reporter}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">등록일시</div>
+          <div class="info-value">${d.createdAt}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">처리 약속일</div>
+          <div class="info-value">${d.promiseDate || '-'}</div>
+        </div>
+      `;
+
+      // AI Classification
+      if (d.confidence) {
+        const confPct = Math.round(d.confidence * 100);
+        document.getElementById('aiClassification').innerHTML = `
+          <div class="ai-result-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="ai-result-item">
+              <div class="ai-item-label">공종</div>
+              <div class="ai-item-value">${d.workType}</div>
+            </div>
+            <div class="ai-result-item">
+              <div class="ai-item-label">하자유형</div>
+              <div class="ai-item-value">${d.defectType}</div>
+            </div>
+            <div class="ai-result-item">
+              <div class="ai-item-label">심각도</div>
+              <div class="ai-item-value">Level ${d.severity}</div>
+            </div>
+          </div>
+          <div class="ai-confidence mt-8">
+            <span>신뢰도</span>
+            <div class="confidence-bar">
+              <div class="confidence-fill" style="width: ${confPct}%"></div>
+            </div>
+            <span>${confPct}%</span>
+          </div>
+          <div class="text-xs text-muted mt-8">모델: Claude 3.5 Sonnet | 분석 소요: 1.2초 | 사용자 수정: 없음</div>
+        `;
+      } else {
+        document.getElementById('aiClassification').innerHTML = `
+          <div class="loading-overlay">
+            <div class="spinner"></div>
+            <span>AI 분류 대기 중...</span>
+          </div>
+        `;
+      }
+
+      // Contractor
+      const contractor = d.contractor ? MOCK.contractors.find(c => c.name === d.contractor) : null;
+      if (contractor) {
+        document.getElementById('contractorInfo').innerHTML = `
+          <div style="margin-bottom: 12px;">
+            <div class="text-xs text-muted">시공사명</div>
+            <div style="font-size: 14px; font-weight: 600;">${contractor.name}</div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <div class="text-xs text-muted">담당 공종</div>
+            <div class="text-sm">${contractor.workTypes.join(', ')}</div>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <div class="text-xs text-muted">연락처</div>
+            <div class="text-sm">${contractor.phone}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">현재 진행 건수</div>
+            <div class="text-sm">${contractor.active}건</div>
+          </div>
+        `;
+      } else {
+        document.getElementById('contractorInfo').innerHTML = `
+          <div style="text-align: center; padding: 16px; color: var(--gray-400); font-size: 13px;">
+            시공사 미배정<br>
+            <button class="btn btn-primary btn-sm mt-8" onclick="showAssignModal()">수동 배정</button>
+          </div>
+        `;
+      }
+
+      // History timeline
+      const history = MOCK.getDefectHistory(d.id);
+      let timelineHTML = '';
+      history.forEach((h, i) => {
+        const isLast = i === history.length - 1;
+        timelineHTML += `
+          <div class="timeline-item ${isLast ? 'active' : ''}">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <strong class="text-sm">${h.label}</strong> - ${h.note}
+              <div class="timeline-time">${h.time} | ${h.by}</div>
+            </div>
+          </div>
+        `;
+      });
+      document.getElementById('historyTimeline').innerHTML = timelineHTML;
+
+      // Similar cases
+      const cases = MOCK.getSimilarCases(d.workType, d.defectType);
+      document.getElementById('similarCasesPanel').innerHTML = cases.map(c => `
+        <div style="padding: 10px 0; border-bottom: 1px solid var(--gray-100);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span class="text-sm" style="font-weight: 500;">${c.project}</span>
+            <span style="font-size: 10px; color: var(--primary-600); font-weight: 600;">${c.similarity}%</span>
+          </div>
+          <div class="text-xs text-muted">조치: ${c.resolution} | 소요: ${c.duration}</div>
+        </div>
+      `).join('');
+
+      // Comments
+      renderComments();
+    }
+
+    function renderComments() {
+      document.getElementById('commentsSection').innerHTML = `
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-author">대한도장 (시공사)</span>
+            <span class="comment-time">01/29 10:30</span>
+          </div>
+          <div class="comment-text">현장 확인 결과 균열 범위가 넓어 부분 재시공이 필요합니다. 재료 수급 후 2일 내 완료 예정입니다.</div>
+        </div>
+        <div class="comment-item">
+          <div class="comment-header">
+            <span class="comment-author">김현수 (점검 관리자)</span>
+            <span class="comment-time">01/29 11:00</span>
+          </div>
+          <div class="comment-text">확인했습니다. 약속일 내 완료 부탁드립니다.</div>
+        </div>
+      `;
+    }
+
+    function addComment() {
+      const input = document.getElementById('commentInput');
+      if (!input.value.trim()) return;
+      showToast('의견이 등록되었습니다');
+      input.value = '';
+    }
+
+    function getAvailableActions(status) {
+      const map = {
+        PENDING: [
+          { label: 'AI 분류 재실행', class: 'btn-primary btn-sm', action: 'retryAi()' }
+        ],
+        RECEIVED: [
+          { label: '시공사 배정', class: 'btn-primary btn-sm', action: 'showAssignModal()' }
+        ],
+        ASSIGNED: [
+          { label: '처리 착수', class: 'btn-primary btn-sm', action: 'changeStatus("IN_PROGRESS")' }
+        ],
+        IN_PROGRESS: [
+          { label: '처리 완료', class: 'btn-primary btn-sm', action: 'showCompleteModal()' }
+        ],
+        COMPLETED: [
+          { label: '검수 통과', class: 'btn-primary btn-sm', action: 'changeStatus("VERIFIED")' },
+          { label: '반려', class: 'btn-danger btn-sm', action: 'showRejectModal()' }
+        ],
+        REJECTED: [
+          { label: '재배정', class: 'btn-primary btn-sm', action: 'changeStatus("ASSIGNED")' }
+        ],
+        VERIFIED: [
+          { label: '종결 처리', class: 'btn-primary btn-sm', action: 'changeStatus("CLOSED")' }
+        ],
+        CLOSED: []
+      };
+      return map[status] || [];
+    }
+
+    function changeStatus(newStatus) {
+      const oldLabel = MOCK.statuses[currentDefect.status].label;
+      const newLabel = MOCK.statuses[newStatus].label;
+      currentDefect.status = newStatus;
+      showToast(`상태 변경: ${oldLabel} → ${newLabel}`);
+      renderDetail();
+    }
+
+    function showAssignModal() {
+      document.getElementById('statusModal').classList.add('active');
+      document.getElementById('modalTitle').textContent = '시공사 배정';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="form-group">
+          <label class="form-label">공종 기준 추천 시공사</label>
+          <select class="form-select" id="assignContractor">
+            ${MOCK.contractors.filter(c => c.workTypes.includes(currentDefect.workType)).map(c =>
+              `<option value="${c.id}">${c.name} (진행 ${c.active}건)</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">처리 약속일</label>
+          <input type="date" class="form-input" id="assignDate" value="2026-02-07">
+        </div>
+      `;
+      document.getElementById('modalFooter').innerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+        <button class="btn btn-primary" onclick="confirmAssign()">배정</button>
+      `;
+    }
+
+    function confirmAssign() {
+      closeModal();
+      changeStatus('ASSIGNED');
+      showToast('시공사가 배정되었습니다');
+    }
+
+    function showCompleteModal() {
+      document.getElementById('statusModal').classList.add('active');
+      document.getElementById('modalTitle').textContent = '처리 완료 보고';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="form-group">
+          <label class="form-label form-required">보수 완료 사진</label>
+          <div class="photo-upload-area" style="padding: 20px;" onclick="this.innerHTML='<div style=\\'text-align:center;\\'>보수완료_1.jpg 업로드됨</div>'">
+            <div class="upload-text">보수 완료 사진을 첨부하세요</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">처리 내용</label>
+          <textarea class="form-textarea" rows="3" placeholder="보수 내용을 입력하세요...">균열 부위 V커팅 후 퍼티 충진, 2회 재도장 완료</textarea>
+        </div>
+      `;
+      document.getElementById('modalFooter').innerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+        <button class="btn btn-primary" onclick="closeModal(); changeStatus('COMPLETED')">완료 보고</button>
+      `;
+    }
+
+    function showRejectModal() {
+      document.getElementById('statusModal').classList.add('active');
+      document.getElementById('modalTitle').textContent = '검수 반려';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="form-group">
+          <label class="form-label form-required">반려 사유</label>
+          <textarea class="form-textarea" rows="3" placeholder="반려 사유를 입력하세요..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">반려 사진 (선택)</label>
+          <div class="photo-upload-area" style="padding: 16px;">
+            <div class="upload-text">사진 첨부 (선택)</div>
+          </div>
+        </div>
+      `;
+      document.getElementById('modalFooter').innerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+        <button class="btn btn-danger" onclick="closeModal(); changeStatus('REJECTED')">반려</button>
+      `;
+    }
+
+    function retryAi() {
+      showToast('AI 분류를 재실행합니다...');
+      setTimeout(() => {
+        currentDefect.confidence = 0.92;
+        currentDefect.status = 'RECEIVED';
+        renderDetail();
+        showToast('AI 분류가 완료되었습니다');
+      }, 2000);
+    }
+
+    function closeModal() {
+      document.getElementById('statusModal').classList.remove('active');
+    }
+  </script>
+</body>
+</html>

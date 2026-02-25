@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하자 이걸로 - 대시보드</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ============================================
+       Dashboard v2 - 10K Scale Analytics
+       Monochrome base + 4 muted semantic colors
+       ============================================ */
+    :root {
+      --d-danger: #9e3c3c;
+      --d-danger-bg: #faf5f5;
+      --d-danger-border: #e8d5d5;
+      --d-ok: #4a7c6f;
+      --d-ok-bg: #f4f9f7;
+      --d-ok-border: #d5e5df;
+      --d-warn: #8a7340;
+      --d-warn-bg: #faf8f3;
+      --d-warn-border: #e5dcc8;
+      --d-info: #4a6a8a;
+      --d-info-bg: #f4f7fa;
+      --d-info-border: #d5dfe8;
+    }
+
+    /* KPI Strip */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1px;
+      background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .kpi-item {
+      background: #fff;
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+    .kpi-item:hover { background: var(--gray-50); }
+    .kpi-item .kpi-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+    .kpi-item .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-item .kpi-sub {
+      font-size: 11px;
+      margin-top: 4px;
+      color: var(--gray-500);
+    }
+    .kpi-item .kpi-sub.danger { color: var(--d-danger); }
+    .kpi-item .kpi-sub.ok { color: var(--d-ok); }
+    .kpi-item .kpi-sub.warn { color: var(--d-warn); }
+    .kpi-item.highlight-danger { border-bottom: 3px solid var(--d-danger); }
+    .kpi-item.highlight-ok { border-bottom: 3px solid var(--d-ok); }
+    .kpi-item.highlight-warn { border-bottom: 3px solid var(--d-warn); }
+
+    /* Alert banner */
+    .alert-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      background: var(--d-danger-bg);
+      border: 1px solid var(--d-danger-border);
+      border-radius: var(--border-radius);
+      margin-bottom: 20px;
+    }
+    .alert-banner .alert-icon {
+      font-size: 16px;
+      color: var(--d-danger);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .alert-banner .alert-text {
+      font-size: 13px;
+      color: var(--d-danger);
+      flex: 1;
+    }
+    .alert-banner .alert-action {
+      font-size: 12px;
+      color: var(--d-danger);
+      border: 1px solid var(--d-danger-border);
+      background: #fff;
+      padding: 4px 12px;
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .alert-banner .alert-action:hover { background: var(--d-danger-bg); }
+
+    /* Section */
+    .dash-section {
+      margin-bottom: 20px;
+    }
+    .dash-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .dash-section-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .section-action {
+      font-size: 12px;
+      color: var(--gray-500);
+      cursor: pointer;
+      border: 1px solid var(--gray-200);
+      padding: 3px 10px;
+      border-radius: var(--border-radius-sm);
+      background: #fff;
+    }
+    .section-action:hover { background: var(--gray-50); color: var(--gray-700); text-decoration: none; }
+
+    /* Two column layout */
+    .dash-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .dash-grid-2-1 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .dash-grid-1-2 {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* AI Insights panel */
+    .ai-insights-panel {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+    }
+    .ai-insights-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ai-insights-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .ai-tag {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--d-info);
+      background: var(--d-info-bg);
+      border: 1px solid var(--d-info-border);
+      padding: 1px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.03em;
+    }
+    .insight-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-100);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .insight-item:last-child { border-bottom: none; }
+    .insight-item:hover { background: var(--gray-50); }
+    .insight-item .insight-severity {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .insight-item .insight-severity.high { background: var(--d-danger); }
+    .insight-item .insight-severity.medium { background: var(--d-warn); }
+    .insight-item .insight-severity.low { background: var(--gray-400); }
+    .insight-item .insight-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-800);
+      margin-bottom: 3px;
+    }
+    .insight-item .insight-desc {
+      font-size: 12px;
+      color: var(--gray-500);
+      line-height: 1.5;
+    }
+    .insight-item .insight-metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--gray-600);
+      background: var(--gray-100);
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-top: 4px;
+    }
+
+    /* Building Heatmap Grid */
+    .heatmap-grid {
+      display: grid;
+      gap: 2px;
+    }
+    .heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: transform 0.1s;
+      position: relative;
+    }
+    .heatmap-cell:hover {
+      transform: scale(1.3);
+      z-index: 2;
+      box-shadow: 0 0 0 1px var(--gray-400);
+    }
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+    .heatmap-legend-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    /* Building summary row */
+    .building-summary {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 4px;
+      align-items: center;
+    }
+    .building-label {
+      width: 40px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--gray-600);
+      text-align: right;
+      padding-right: 6px;
+      flex-shrink: 0;
+    }
+    .building-bar-container {
+      flex: 1;
+      display: flex;
+      gap: 1px;
+      height: 18px;
+      cursor: pointer;
+    }
+    .building-bar-container:hover { opacity: 0.85; }
+    .building-count {
+      width: 50px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--gray-600);
+      text-align: right;
+      flex-shrink: 0;
+      padding-left: 6px;
+    }
+
+    /* Trend chart (SVG based) */
+    .trend-chart-container {
+      position: relative;
+      padding: 8px 0;
+    }
+    .trend-chart-container svg {
+      width: 100%;
+      display: block;
+    }
+    .trend-axis-label {
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+    .trend-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+      padding-left: 4px;
+    }
+    .trend-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--gray-600);
+    }
+    .trend-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Priority Queue */
+    .priority-item {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--gray-100);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .priority-item:hover { background: var(--gray-50); }
+    .priority-item:last-child { border-bottom: none; }
+    .priority-score {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .priority-score.critical { background: var(--d-danger-bg); color: var(--d-danger); border: 1.5px solid var(--d-danger-border); }
+    .priority-score.high { background: var(--d-warn-bg); color: var(--d-warn); border: 1.5px solid var(--d-warn-border); }
+    .priority-score.medium { background: var(--d-info-bg); color: var(--d-info); border: 1.5px solid var(--d-info-border); }
+    .priority-info .pi-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--d-info);
+    }
+    .priority-info .pi-location {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+    .priority-info .pi-reason {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-top: 1px;
+    }
+    .priority-days {
+      text-align: right;
+    }
+    .priority-days .pd-value {
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+    .priority-days .pd-value.overdue { color: var(--d-danger); }
+    .priority-days .pd-value.warning { color: var(--d-warn); }
+    .priority-days .pd-label {
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+
+    /* Processing Pipeline */
+    .pipeline-flow {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 0;
+    }
+    .pipeline-stage {
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .pipeline-stage:hover { transform: translateY(-2px); }
+    .pipeline-bar {
+      height: 32px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: #fff;
+      margin-bottom: 4px;
+      min-width: 0;
+    }
+    .pipeline-label {
+      font-size: 10px;
+      color: var(--gray-600);
+      white-space: nowrap;
+    }
+    .pipeline-arrow {
+      color: var(--gray-300);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* Contractor table */
+    .contractor-perf-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .contractor-perf-table th {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 2px solid var(--gray-200);
+      white-space: nowrap;
+    }
+    .contractor-perf-table th.num { text-align: right; }
+    .contractor-perf-table td {
+      font-size: 12px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-700);
+    }
+    .contractor-perf-table td.num {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .contractor-perf-table tbody tr { cursor: pointer; transition: background 0.15s; }
+    .contractor-perf-table tbody tr:hover { background: var(--gray-50); }
+    .perf-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .perf-bar {
+      width: 60px;
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .perf-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    /* SLA Gauge */
+    .sla-gauge-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .sla-ring {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+    .sla-ring svg {
+      transform: rotate(-90deg);
+    }
+    .sla-ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .sla-ring-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1;
+      font-family: var(--font-mono);
+    }
+    .sla-ring-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+    .sla-detail-list {
+      margin-left: 24px;
+    }
+    .sla-detail-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 12px;
+      color: var(--gray-700);
+    }
+    .sla-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sla-detail-item .sla-val {
+      font-weight: 600;
+      font-family: var(--font-mono);
+      margin-left: auto;
+    }
+
+    /* Drill-down popup */
+    .drill-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(33,37,41,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .drill-overlay.active { display: flex; }
+    .drill-popup {
+      background: #fff;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-lg);
+      width: 90%;
+      max-width: 640px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .drill-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .drill-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .drill-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .drill-close:hover { color: var(--gray-700); }
+    .drill-body {
+      padding: 16px 18px;
+    }
+    .drill-footer {
+      padding: 10px 18px;
+      border-top: 1px solid var(--gray-200);
+      background: var(--gray-50);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* Drill list item */
+    .drill-list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: 12px;
+      color: var(--gray-700);
+    }
+    .drill-list-item:last-child { border-bottom: none; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+      .dash-grid-2, .dash-grid-2-1, .dash-grid-1-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .pipeline-flow { flex-wrap: wrap; }
+      .pipeline-arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-content">
+      <header class="top-header" id="topHeader"></header>
+
+      <div class="page-body">
+        <!-- Alert banner (overdue / critical) -->
+        <div class="alert-banner" id="alertBanner"></div>
+
+        <!-- KPI Strip -->
+        <div class="kpi-strip" id="kpiStrip"></div>
+
+        <!-- Row 1: Processing Pipeline + SLA Gauge -->
+        <div class="dash-grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>처리 파이프라인</h3>
+              <span class="text-xs text-muted">접수 → 처리 → 검수 흐름</span>
+            </div>
+            <div class="card-body" id="pipelineChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>SLA 준수율</h3>
+              <span class="text-xs text-muted">처리기한 기준</span>
+            </div>
+            <div class="card-body" id="slaGauge" style="display: flex; align-items: center; justify-content: center;"></div>
+          </div>
+        </div>
+
+        <!-- Row 2: AI Insights + Priority Queue -->
+        <div class="dash-grid-2">
+          <div class="ai-insights-panel">
+            <div class="ai-insights-header">
+              <h3>AI 분석 인사이트</h3>
+              <span class="ai-tag">AI ANALYSIS</span>
+            </div>
+            <div id="aiInsights"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>우선순위 처리 대기</h3>
+              <button class="section-action" onclick="showDrill('priority-all')">전체 보기</button>
+            </div>
+            <div id="priorityQueue" style="max-height: 380px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <!-- Row 3: Weekly Trend + Building Heatmap -->
+        <div class="dash-grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>주간 추이</h3>
+              <span class="text-xs text-muted">최근 12주</span>
+            </div>
+            <div class="card-body" id="weeklyTrend"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>동별 하자 분포</h3>
+              <span class="text-xs text-muted">클릭하여 상세 확인</span>
+            </div>
+            <div class="card-body" id="buildingDistribution"></div>
+          </div>
+        </div>
+
+        <!-- Row 4: Contractor Performance -->
+        <div class="dash-section">
+          <div class="card">
+            <div class="card-header">
+              <h3>시공사별 성과</h3>
+              <button class="section-action" onclick="showDrill('contractor-all')">상세 분석</button>
+            </div>
+            <div style="overflow-x: auto;">
+              <table class="contractor-perf-table" id="contractorTable"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 5: Work type breakdown + Daily trend -->
+        <div class="dash-grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>공종별 분포</h3>
+              <span class="text-xs text-muted">상위 10개</span>
+            </div>
+            <div class="card-body" id="workTypeBreakdown"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>일별 추이</h3>
+              <span class="text-xs text-muted">최근 14일</span>
+            </div>
+            <div class="card-body" id="dailyTrend"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Drill-down popup -->
+  <div class="drill-overlay" id="drillOverlay" onclick="if(event.target===this)closeDrill()">
+    <div class="drill-popup">
+      <div class="drill-header">
+        <h3 id="drillTitle"></h3>
+        <button class="drill-close" onclick="closeDrill()">X</button>
+      </div>
+      <div class="drill-body" id="drillBody"></div>
+      <div class="drill-footer" id="drillFooter"></div>
+    </div>
+  </div>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const S = MOCK.scaledStats;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHeader('대시보드');
+      renderAlertBanner();
+      renderKPIStrip();
+      renderPipeline();
+      renderSLAGauge();
+      renderAIInsights();
+      renderPriorityQueue();
+      renderWeeklyTrend();
+      renderBuildingDistribution();
+      renderContractorTable();
+      renderWorkTypeBreakdown();
+      renderDailyTrend();
+    });
+
+    // ============================================
+    // Alert Banner
+    // ============================================
+    function renderAlertBanner() {
+      const el = document.getElementById('alertBanner');
+      const urgent = S.overdueBreakdown.bySeverity[4] || 0;
+      const overdue = S.overdueCount;
+      if (overdue > 0) {
+        el.innerHTML = `
+          <span class="alert-icon">!</span>
+          <span class="alert-text">
+            SLA 초과 <strong>${overdue}건</strong> (긴급 ${urgent}건 포함) &#8212;
+            한솔설비 ${S.overdueBreakdown.byContractor['한솔설비']}건, 대한도장 ${S.overdueBreakdown.byContractor['대한도장']}건 집중
+          </span>
+          <button class="alert-action" onclick="showDrill('overdue')">초과 목록 확인</button>
+        `;
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // ============================================
+    // KPI Strip
+    // ============================================
+    function renderKPIStrip() {
+      const el = document.getElementById('kpiStrip');
+      const proj = MOCK.currentProject;
+      const dailyDelta = S.todayDelta >= 0 ? `+${S.todayDelta}` : S.todayDelta;
+      const weekDelta = S.thisWeek - S.lastWeek;
+      const weekDeltaStr = weekDelta >= 0 ? `+${weekDelta}` : weekDelta;
+      const processDelta = (S.avgProcessDays - S.avgProcessDaysLastMonth).toFixed(1);
+      const processDeltaStr = processDelta > 0 ? `+${processDelta}일` : `${processDelta}일`;
+
+      el.innerHTML = `
+        <div class="kpi-item" onclick="showDrill('total')">
+          <div class="kpi-label">전체 하자</div>
+          <div class="kpi-value">${S.total.toLocaleString()}</div>
+          <div class="kpi-sub">${proj.name}</div>
+        </div>
+        <div class="kpi-item" onclick="showDrill('today')">
+          <div class="kpi-label">오늘 접수</div>
+          <div class="kpi-value">${S.today}</div>
+          <div class="kpi-sub ${S.todayDelta > 0 ? 'warn' : 'ok'}">${dailyDelta} 전일 대비</div>
+        </div>
+        <div class="kpi-item highlight-warn" onclick="showDrill('open')">
+          <div class="kpi-label">미처리 (접수~처리중)</div>
+          <div class="kpi-value">${S.openCount.toLocaleString()}</div>
+          <div class="kpi-sub warn">이번 주 ${weekDeltaStr}건</div>
+        </div>
+        <div class="kpi-item highlight-danger" onclick="showDrill('overdue')">
+          <div class="kpi-label">SLA 초과</div>
+          <div class="kpi-value">${S.overdueCount}</div>
+          <div class="kpi-sub danger">긴급 ${S.overdueBreakdown.bySeverity[4]}건</div>
+        </div>
+        <div class="kpi-item highlight-ok" onclick="showDrill('completed')">
+          <div class="kpi-label">완료율</div>
+          <div class="kpi-value">${S.completionRate}%</div>
+          <div class="kpi-sub ok">${S.completedCount.toLocaleString()}건 완료</div>
+        </div>
+        <div class="kpi-item" onclick="showDrill('process-time')">
+          <div class="kpi-label">평균 처리일</div>
+          <div class="kpi-value">${S.avgProcessDays}일</div>
+          <div class="kpi-sub ${parseFloat(processDelta) < 0 ? 'ok' : 'warn'}">${processDeltaStr} 전월 대비</div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // Processing Pipeline
+    // ============================================
+    function renderPipeline() {
+      const el = document.getElementById('pipelineChart');
+      const p = S.pipeline;
+      const stages = [
+        { label: '미배정', count: p.unassigned, color: 'var(--gray-500)' },
+        { label: '배정완료', count: p.assigned, color: 'var(--d-info)' },
+        { label: '처리중', count: p.inProgress, color: 'var(--d-warn)' },
+        { label: '처리완료', count: p.awaitingVerification, color: 'var(--d-ok)' },
+        { label: '검수완료', count: p.verified, color: '#4a7c6f' },
+        { label: '반려', count: p.rejected, color: 'var(--d-danger)' },
+      ];
+
+      const maxCount = Math.max(...stages.map(s => s.count));
+      let html = '<div class="pipeline-flow">';
+      stages.forEach((s, i) => {
+        const h = Math.max(24, Math.round(s.count / maxCount * 48));
+        html += `
+          <div class="pipeline-stage" onclick="showDrill('pipeline-${s.label}')">
+            <div class="pipeline-bar" style="height: ${h}px; background: ${s.color};">${s.count.toLocaleString()}</div>
+            <div class="pipeline-label">${s.label}</div>
+          </div>
+        `;
+        if (i < stages.length - 2) {
+          html += '<span class="pipeline-arrow">&#8594;</span>';
+        } else if (i === stages.length - 2) {
+          // space before rejected
+        }
+      });
+      html += '</div>';
+
+      // Throughput metrics
+      const lastWeekCompleted = S.weeklyTrend[S.weeklyTrend.length - 1].completed;
+      const lastWeekReg = S.weeklyTrend[S.weeklyTrend.length - 1].registered;
+      html += `
+        <div style="display: flex; gap: 24px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--gray-100);">
+          <div style="font-size: 11px; color: var(--gray-500);">
+            이번 주 접수 <strong style="color: var(--gray-800); font-family: var(--font-mono);">${lastWeekReg}</strong>건
+          </div>
+          <div style="font-size: 11px; color: var(--gray-500);">
+            이번 주 처리 <strong style="color: var(--d-ok); font-family: var(--font-mono);">${lastWeekCompleted}</strong>건
+          </div>
+          <div style="font-size: 11px; color: ${lastWeekCompleted >= lastWeekReg ? 'var(--d-ok)' : 'var(--d-warn)'};">
+            ${lastWeekCompleted >= lastWeekReg ? '처리 > 접수 (양호)' : '접수 > 처리 (적체 증가)'}
+          </div>
+        </div>
+      `;
+
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // SLA Gauge
+    // ============================================
+    function renderSLAGauge() {
+      const el = document.getElementById('slaGauge');
+      const sla = S.sla;
+      const total = sla.withinSLA + sla.nearSLA + sla.overSLA;
+      const slaRate = Math.round(sla.withinSLA / total * 100);
+      const r = 58, c = 2 * Math.PI * r;
+
+      const segments = [
+        { count: sla.withinSLA, color: 'var(--d-ok)', label: 'SLA 이내', pct: Math.round(sla.withinSLA/total*100) },
+        { count: sla.nearSLA, color: 'var(--d-warn)', label: 'SLA 임박 (2일 이내)', pct: Math.round(sla.nearSLA/total*100) },
+        { count: sla.overSLA, color: 'var(--d-danger)', label: 'SLA 초과', pct: Math.round(sla.overSLA/total*100) },
+      ];
+
+      let offset = 0;
+      let rings = '';
+      segments.forEach(seg => {
+        const len = (seg.count / total) * c;
+        rings += `<circle cx="70" cy="70" r="${r}" fill="none" stroke="${seg.color}" stroke-width="12" stroke-dasharray="${len} ${c - len}" stroke-dashoffset="-${offset}" />`;
+        offset += len;
+      });
+
+      let html = `
+        <div class="sla-ring">
+          <svg viewBox="0 0 140 140" width="140" height="140">
+            <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--gray-200)" stroke-width="12" />
+            ${rings}
+          </svg>
+          <div class="sla-ring-center">
+            <div class="sla-ring-value">${slaRate}%</div>
+            <div class="sla-ring-label">SLA 준수</div>
+          </div>
+        </div>
+        <div class="sla-detail-list">
+      `;
+      segments.forEach(seg => {
+        html += `
+          <div class="sla-detail-item">
+            <span class="sla-dot" style="background: ${seg.color};"></span>
+            <span>${seg.label}</span>
+            <span class="sla-val">${seg.count.toLocaleString()}건 (${seg.pct}%)</span>
+          </div>
+        `;
+      });
+      html += `
+          <div class="sla-detail-item" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--gray-100);">
+            <span class="sla-dot" style="background: var(--gray-300);"></span>
+            <span>기한 미설정</span>
+            <span class="sla-val">${sla.noDeadline.toLocaleString()}건</span>
+          </div>
+        </div>
+      `;
+
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // AI Insights
+    // ============================================
+    function renderAIInsights() {
+      const el = document.getElementById('aiInsights');
+      let html = '';
+      S.aiInsights.forEach((insight, i) => {
+        html += `
+          <div class="insight-item" onclick="showDrill('insight-${i}')">
+            <div class="insight-title">
+              <span class="insight-severity ${insight.severity}"></span>
+              ${insight.title}
+            </div>
+            <div class="insight-desc">${insight.description.substring(0, 80)}${insight.description.length > 80 ? '...' : ''}</div>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <span class="insight-metric">${insight.metric}</span>
+              <span class="insight-metric" style="color: var(--gray-400);">기준: ${insight.baseline}</span>
+            </div>
+          </div>
+        `;
+      });
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // Priority Queue
+    // ============================================
+    function renderPriorityQueue() {
+      const el = document.getElementById('priorityQueue');
+      let html = '';
+      S.priorityQueue.forEach(item => {
+        const scoreClass = item.score >= 90 ? 'critical' : item.score >= 75 ? 'high' : 'medium';
+        const daysClass = item.daysOpen > 7 ? 'overdue' : item.daysOpen > 3 ? 'warning' : '';
+        html += `
+          <div class="priority-item" onclick="location.href='defect-detail.html?id=${item.id}'">
+            <div class="priority-score ${scoreClass}">${item.score}</div>
+            <div class="priority-info">
+              <div class="pi-id">${item.receiptNumber}</div>
+              <div class="pi-location">${item.building}동 ${item.unit}호 ${item.room} / ${item.workType}</div>
+              <div class="pi-reason">${item.reason}</div>
+            </div>
+            <div class="priority-days">
+              <div class="pd-value ${daysClass}">D+${item.daysOpen}</div>
+              <div class="pd-label">${severityBadge(item.severity)}</div>
+            </div>
+          </div>
+        `;
+      });
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // Weekly Trend (SVG Line Chart)
+    // ============================================
+    function renderWeeklyTrend() {
+      const el = document.getElementById('weeklyTrend');
+      const data = S.weeklyTrend;
+      const W = 520, H = 180, padL = 36, padR = 8, padT = 12, padB = 28;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
+
+      const maxVal = Math.max(...data.map(d => Math.max(d.registered, d.completed))) * 1.15;
+
+      function x(i) { return padL + (i / (data.length - 1)) * chartW; }
+      function y(v) { return padT + chartH - (v / maxVal) * chartH; }
+
+      let regPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(d.registered).toFixed(1)}`).join(' ');
+      let compPath = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(d.completed).toFixed(1)}`).join(' ');
+
+      // Area under completed
+      let compArea = `M${x(0).toFixed(1)},${y(0).toFixed(1)} ` +
+        data.map((d, i) => `L${x(i).toFixed(1)},${y(d.completed).toFixed(1)}`).join(' ') +
+        ` L${x(data.length-1).toFixed(1)},${y(0).toFixed(1)} Z`;
+
+      let gridLines = '';
+      for (let v = 0; v <= maxVal; v += 100) {
+        const yy = y(v);
+        gridLines += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--gray-100)" stroke-width="1"/>`;
+        gridLines += `<text x="${padL - 4}" y="${yy + 3}" text-anchor="end" class="trend-axis-label" fill="var(--gray-400)" font-size="10">${v}</text>`;
+      }
+
+      let xLabels = data.map((d, i) =>
+        `<text x="${x(i)}" y="${H - 4}" text-anchor="middle" class="trend-axis-label" fill="var(--gray-400)" font-size="10">${d.week}</text>`
+      ).join('');
+
+      let dots = data.map((d, i) =>
+        `<circle cx="${x(i)}" cy="${y(d.registered)}" r="3" fill="var(--gray-500)" />` +
+        `<circle cx="${x(i)}" cy="${y(d.completed)}" r="3" fill="var(--d-ok)" />`
+      ).join('');
+
+      el.innerHTML = `
+        <div class="trend-chart-container">
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+            ${gridLines}
+            <path d="${compArea}" fill="var(--d-ok-bg)" opacity="0.5"/>
+            <path d="${regPath}" fill="none" stroke="var(--gray-500)" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <path d="${compPath}" fill="none" stroke="var(--d-ok)" stroke-width="2"/>
+            ${dots}
+            ${xLabels}
+          </svg>
+        </div>
+        <div class="trend-legend">
+          <div class="trend-legend-item"><span class="trend-legend-dot" style="background: var(--gray-500);"></span> 접수</div>
+          <div class="trend-legend-item"><span class="trend-legend-dot" style="background: var(--d-ok);"></span> 처리 완료</div>
+          <div class="trend-legend-item" style="margin-left: auto; font-family: var(--font-mono);">
+            미처리 잔량: ${data[data.length-1].cumOpen.toLocaleString()}건
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // Building Distribution (Horizontal Bars with Proportional Segments)
+    // ============================================
+    function renderBuildingDistribution() {
+      const el = document.getElementById('buildingDistribution');
+      const hm = S.buildingHeatmap;
+      const maxTotal = Math.max(...Object.values(hm).map(b => b.total));
+
+      let html = '';
+      Object.entries(hm).forEach(([bldg, data]) => {
+        const normalPct = ((data.total - data.overdue) / maxTotal * 100).toFixed(1);
+        const overduePct = (data.overdue / maxTotal * 100).toFixed(1);
+
+        html += `
+          <div class="building-summary" onclick="showDrill('building-${bldg}')">
+            <span class="building-label">${bldg}동</span>
+            <div class="building-bar-container">
+              <div style="width: ${normalPct}%; background: var(--d-info); border-radius: 2px 0 0 2px; height: 100%;"></div>
+              ${data.overdue > 0 ? `<div style="width: ${overduePct}%; background: var(--d-danger); border-radius: 0 2px 2px 0; height: 100%;"></div>` : ''}
+            </div>
+            <span class="building-count">${data.total.toLocaleString()}</span>
+          </div>
+        `;
+      });
+
+      html += `
+        <div class="heatmap-legend" style="margin-top: 12px;">
+          <span class="heatmap-legend-box" style="background: var(--d-info);"></span> 정상 처리
+          <span style="margin-left: 8px;" class="heatmap-legend-box" style="background: var(--d-danger);"></span> SLA 초과
+          <span style="margin-left: auto; font-size: 10px; color: var(--gray-400);">클릭하여 층별 상세 확인</span>
+        </div>
+      `;
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // Contractor Performance Table
+    // ============================================
+    function renderContractorTable() {
+      const el = document.getElementById('contractorTable');
+      const contractors = S.contractors.sort((a, b) => b.assigned - a.assigned);
+
+      let html = `
+        <thead>
+          <tr>
+            <th>시공사</th>
+            <th class="num">배정</th>
+            <th class="num">완료</th>
+            <th>처리율</th>
+            <th class="num">초과</th>
+            <th class="num">평균일</th>
+            <th class="num">반려율</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+      contractors.forEach(c => {
+        const rate = Math.round(c.completed / c.assigned * 100);
+        const rateColor = rate >= 85 ? 'var(--d-ok)' : rate >= 70 ? 'var(--d-warn)' : 'var(--d-danger)';
+        const overdueColor = c.overdue > 50 ? 'var(--d-danger)' : c.overdue > 30 ? 'var(--d-warn)' : 'var(--gray-600)';
+        const daysColor = c.avgDays > 4 ? 'var(--d-danger)' : c.avgDays > 3 ? 'var(--d-warn)' : 'var(--gray-600)';
+        const rejectColor = c.rejectRate > 5 ? 'var(--d-danger)' : c.rejectRate > 3 ? 'var(--d-warn)' : 'var(--gray-600)';
+
+        html += `
+          <tr onclick="showDrill('contractor-${c.name}')">
+            <td style="font-weight: 500;">${c.name}</td>
+            <td class="num">${c.assigned.toLocaleString()}</td>
+            <td class="num">${c.completed.toLocaleString()}</td>
+            <td>
+              <div class="perf-bar-wrap">
+                <div class="perf-bar"><div class="perf-bar-fill" style="width: ${rate}%; background: ${rateColor};"></div></div>
+                <span style="font-size: 11px; font-family: var(--font-mono); color: ${rateColor};">${rate}%</span>
+              </div>
+            </td>
+            <td class="num" style="color: ${overdueColor}; font-weight: 500;">${c.overdue}</td>
+            <td class="num" style="color: ${daysColor};">${c.avgDays}일</td>
+            <td class="num" style="color: ${rejectColor};">${c.rejectRate}%</td>
+          </tr>
+        `;
+      });
+      html += '</tbody>';
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // Work Type Breakdown (Top 10 Horizontal)
+    // ============================================
+    function renderWorkTypeBreakdown() {
+      const el = document.getElementById('workTypeBreakdown');
+      const wt = S.workTypeCounts;
+      const sorted = Object.entries(wt).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const maxVal = sorted[0][1];
+
+      let html = '<div style="display: flex; flex-direction: column; gap: 6px;">';
+      sorted.forEach(([type, count]) => {
+        const pct = Math.round(count / maxVal * 100);
+        const totalPct = (count / S.total * 100).toFixed(1);
+        html += `
+          <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="showDrill('worktype-${type}')">
+            <span style="width: 80px; font-size: 12px; color: var(--gray-600); text-align: right; flex-shrink: 0;">${type}</span>
+            <div style="flex: 1; height: 14px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+              <div style="width: ${pct}%; height: 100%; background: var(--d-info); border-radius: 2px; opacity: 0.7;"></div>
+            </div>
+            <span style="width: 70px; font-size: 11px; font-family: var(--font-mono); color: var(--gray-600); text-align: right; flex-shrink: 0;">${count.toLocaleString()} (${totalPct}%)</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    // ============================================
+    // Daily Trend (SVG Bars)
+    // ============================================
+    function renderDailyTrend() {
+      const el = document.getElementById('dailyTrend');
+      const data = S.dailyTrend;
+      const W = 480, H = 160, padL = 30, padR = 8, padT = 8, padB = 28;
+      const chartW = W - padL - padR;
+      const chartH = H - padT - padB;
+      const maxVal = Math.max(...data.map(d => Math.max(d.reg, d.comp))) * 1.15;
+      const barW = chartW / data.length * 0.35;
+      const gap = chartW / data.length;
+
+      function yPos(v) { return padT + chartH - (v / maxVal) * chartH; }
+
+      let bars = '';
+      let labels = '';
+      data.forEach((d, i) => {
+        const cx = padL + gap * i + gap / 2;
+        const regH = (d.reg / maxVal) * chartH;
+        const compH = (d.comp / maxVal) * chartH;
+
+        bars += `<rect x="${cx - barW - 1}" y="${yPos(d.reg)}" width="${barW}" height="${regH}" fill="var(--gray-400)" rx="1" opacity="0.5"/>`;
+        bars += `<rect x="${cx + 1}" y="${yPos(d.comp)}" width="${barW}" height="${compH}" fill="var(--d-ok)" rx="1" opacity="0.7"/>`;
+        if (i % 2 === 0) {
+          labels += `<text x="${cx}" y="${H - 4}" text-anchor="middle" fill="var(--gray-400)" font-size="9">${d.date}</text>`;
+        }
+      });
+
+      let gridLines = '';
+      for (let v = 0; v <= maxVal; v += 20) {
+        const yy = yPos(v);
+        gridLines += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--gray-100)" stroke-width="0.5"/>`;
+        if (v % 20 === 0) gridLines += `<text x="${padL - 4}" y="${yy + 3}" text-anchor="end" fill="var(--gray-400)" font-size="9">${v}</text>`;
+      }
+
+      el.innerHTML = `
+        <div class="trend-chart-container">
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+            ${gridLines}
+            ${bars}
+            ${labels}
+          </svg>
+        </div>
+        <div class="trend-legend">
+          <div class="trend-legend-item"><span class="trend-legend-dot" style="background: var(--gray-400);"></span> 접수</div>
+          <div class="trend-legend-item"><span class="trend-legend-dot" style="background: var(--d-ok);"></span> 처리</div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // Drill-down Popup System
+    // ============================================
+    function showDrill(type) {
+      const overlay = document.getElementById('drillOverlay');
+      const title = document.getElementById('drillTitle');
+      const body = document.getElementById('drillBody');
+      const footer = document.getElementById('drillFooter');
+
+      let titleText = '';
+      let bodyHTML = '';
+      let footerHTML = '<button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>';
+
+      if (type === 'overdue') {
+        titleText = 'SLA 초과 하자 상세';
+        const od = S.overdueBreakdown;
+        bodyHTML = `
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">기간별 분포</div>
+            ${Object.entries(od.byDays).map(([range, count]) => `
+              <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px;">
+                <span style="width: 60px; color: var(--gray-600);">${range}일</span>
+                <div style="flex: 1; height: 10px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                  <div style="width: ${Math.round(count/S.overdueCount*100)}%; height: 100%; background: var(--d-danger); opacity: 0.6; border-radius: 2px;"></div>
+                </div>
+                <span style="width: 40px; text-align: right; font-family: var(--font-mono); color: var(--gray-700);">${count}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">심각도별</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+              ${Object.entries(od.bySeverity).reverse().map(([sev, count]) => `
+                <div style="text-align: center; padding: 8px; background: var(--gray-50); border-radius: 4px;">
+                  <div style="font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--gray-800);">${count}</div>
+                  <div style="font-size: 11px; color: var(--gray-500);">${severityBadge(parseInt(sev))}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">시공사별</div>
+            ${Object.entries(od.byContractor).sort((a,b) => b[1] - a[1]).map(([name, count]) => `
+              <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px;">
+                <span style="width: 80px; color: var(--gray-600);">${name}</span>
+                <div style="flex: 1; height: 8px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                  <div style="width: ${Math.round(count/Math.max(...Object.values(od.byContractor))*100)}%; height: 100%; background: var(--d-danger); opacity: 0.5; border-radius: 2px;"></div>
+                </div>
+                <span style="width: 30px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--gray-700);">${count}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="closeDrill(); showToast('일괄 독촉 알림이 발송되었습니다.');">일괄 독촉 알림</button>
+          <button class="btn btn-secondary btn-sm" onclick="location.href='defect-list.html'">목록에서 보기</button>
+        `;
+      }
+      else if (type.startsWith('insight-')) {
+        const idx = parseInt(type.split('-')[1]);
+        const insight = S.aiInsights[idx];
+        titleText = 'AI 인사이트 상세';
+        bodyHTML = `
+          <div style="margin-bottom: 12px;">
+            <span class="insight-severity ${insight.severity}" style="display: inline-block; margin-right: 6px;"></span>
+            <span style="font-size: 14px; font-weight: 600; color: var(--gray-800);">${insight.title}</span>
+          </div>
+          <div style="font-size: 13px; color: var(--gray-700); line-height: 1.7; margin-bottom: 16px;">${insight.description}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="padding: 12px; background: var(--gray-50); border-radius: 4px;">
+              <div style="font-size: 11px; color: var(--gray-500);">현재 수치</div>
+              <div style="font-size: 16px; font-weight: 600; font-family: var(--font-mono); color: var(--d-danger);">${insight.metric}</div>
+            </div>
+            <div style="padding: 12px; background: var(--gray-50); border-radius: 4px;">
+              <div style="font-size: 11px; color: var(--gray-500);">기준치</div>
+              <div style="font-size: 16px; font-weight: 600; font-family: var(--font-mono); color: var(--gray-700);">${insight.baseline}</div>
+            </div>
+          </div>
+          <div style="padding: 12px; background: var(--d-info-bg); border: 1px solid var(--d-info-border); border-radius: 4px; margin-bottom: 12px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--d-info); margin-bottom: 4px;">권장 조치</div>
+            <div style="font-size: 13px; color: var(--gray-700);">${insight.recommendedAction}</div>
+          </div>
+          ${insight.affectedUnits ? `
+            <div style="font-size: 12px; color: var(--gray-600);">
+              <strong>영향 세대:</strong> ${insight.affectedUnits.join(', ')}호
+            </div>
+          ` : ''}
+          <div style="font-size: 11px; color: var(--gray-400); margin-top: 8px;">탐지 시각: ${insight.detectedAt}</div>
+        `;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="closeDrill(); showToast('조치가 요청되었습니다.');">조치 요청</button>
+        `;
+      }
+      else if (type.startsWith('building-')) {
+        const bldg = type.split('-')[1];
+        const data = S.buildingHeatmap[bldg];
+        titleText = `${bldg}동 층별 하자 분포`;
+        const maxFloor = Math.max(...data.byFloor);
+        bodyHTML = `
+          <div style="margin-bottom: 12px; display: flex; gap: 16px; font-size: 12px; color: var(--gray-600);">
+            <span>총 하자: <strong style="font-family: var(--font-mono);">${data.total.toLocaleString()}</strong>건</span>
+            <span>SLA 초과: <strong style="font-family: var(--font-mono); color: var(--d-danger);">${data.overdue}</strong>건</span>
+            <span>평균 처리: <strong style="font-family: var(--font-mono);">${data.avgDays}</strong>일</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            ${data.byFloor.map((count, i) => {
+              const floor = i + 1;
+              const pct = Math.round(count / maxFloor * 100);
+              const intensity = count > maxFloor * 0.8 ? 'var(--d-danger)' : count > maxFloor * 0.5 ? 'var(--d-warn)' : 'var(--d-info)';
+              return `
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 28px; font-size: 11px; text-align: right; color: var(--gray-500); font-family: var(--font-mono);">${floor}F</span>
+                  <div style="flex: 1; height: 12px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                    <div style="width: ${pct}%; height: 100%; background: ${intensity}; opacity: 0.6; border-radius: 2px;"></div>
+                  </div>
+                  <span style="width: 30px; font-size: 10px; font-family: var(--font-mono); color: var(--gray-600); text-align: right;">${count}</span>
+                </div>
+              `;
+            }).reverse().join('')}
+          </div>
+        `;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-secondary btn-sm" onclick="location.href='defect-list.html'">목록에서 보기</button>
+        `;
+      }
+      else if (type.startsWith('contractor-') && type !== 'contractor-all') {
+        const name = type.replace('contractor-', '');
+        const c = S.contractors.find(x => x.name === name);
+        if (!c) return;
+        titleText = `${name} 성과 상세`;
+        const rate = Math.round(c.completed / c.assigned * 100);
+        bodyHTML = `
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="padding: 12px; background: var(--gray-50); border-radius: 4px; text-align: center;">
+              <div style="font-size: 22px; font-weight: 700; font-family: var(--font-mono);">${c.assigned.toLocaleString()}</div>
+              <div style="font-size: 11px; color: var(--gray-500);">배정</div>
+            </div>
+            <div style="padding: 12px; background: var(--d-ok-bg); border-radius: 4px; text-align: center;">
+              <div style="font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--d-ok);">${c.completed.toLocaleString()}</div>
+              <div style="font-size: 11px; color: var(--gray-500);">완료</div>
+            </div>
+            <div style="padding: 12px; background: ${c.overdue > 50 ? 'var(--d-danger-bg)' : 'var(--gray-50)'}; border-radius: 4px; text-align: center;">
+              <div style="font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: ${c.overdue > 50 ? 'var(--d-danger)' : 'var(--gray-700)'};">${c.overdue}</div>
+              <div style="font-size: 11px; color: var(--gray-500);">초과</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">처리율:</span>
+              <strong style="font-family: var(--font-mono); color: ${rate >= 85 ? 'var(--d-ok)' : 'var(--d-warn)'};">${rate}%</strong>
+            </div>
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">평균 처리일:</span>
+              <strong style="font-family: var(--font-mono); color: ${c.avgDays > 4 ? 'var(--d-danger)' : 'var(--gray-700)'};">${c.avgDays}일</strong>
+            </div>
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">반려율:</span>
+              <strong style="font-family: var(--font-mono); color: ${c.rejectRate > 5 ? 'var(--d-danger)' : 'var(--gray-700)'};">${c.rejectRate}%</strong>
+            </div>
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">투입 인원:</span>
+              <strong style="font-family: var(--font-mono);">${c.activeCrew}명</strong>
+            </div>
+          </div>
+          <div style="padding: 10px; background: var(--gray-50); border-radius: 4px; font-size: 12px; color: var(--gray-600);">
+            인당 처리량: <strong style="font-family: var(--font-mono);">${Math.round(c.assigned / c.activeCrew)}</strong>건 /
+            인당 미처리: <strong style="font-family: var(--font-mono);">${Math.round((c.assigned - c.completed) / c.activeCrew)}</strong>건
+          </div>
+        `;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="closeDrill(); showToast('독촉 알림이 발송되었습니다.');">독촉 알림</button>
+        `;
+      }
+      else if (type === 'total' || type === 'open' || type === 'completed' || type === 'today' || type === 'process-time') {
+        const titles = {
+          total: '전체 하자 현황',
+          open: '미처리 하자 현황',
+          completed: '완료 하자 현황',
+          today: '오늘 접수 현황',
+          'process-time': '처리 시간 분석'
+        };
+        titleText = titles[type];
+
+        if (type === 'total') {
+          bodyHTML = `
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+              ${Object.entries(S.statusCounts).map(([status, count]) => `
+                <div style="text-align: center; padding: 10px; background: var(--gray-50); border-radius: 4px;">
+                  <div style="font-size: 18px; font-weight: 700; font-family: var(--font-mono);">${count.toLocaleString()}</div>
+                  <div style="font-size: 10px; color: var(--gray-500);">${MOCK.statuses[status].label}</div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">심각도별</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+              ${Object.entries(S.severityCounts).map(([sev, count]) => `
+                <div style="text-align: center; padding: 10px; background: var(--gray-50); border-radius: 4px;">
+                  <div style="font-size: 18px; font-weight: 700; font-family: var(--font-mono);">${count.toLocaleString()}</div>
+                  <div style="font-size: 10px;">${severityBadge(parseInt(sev))}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        } else if (type === 'process-time') {
+          bodyHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+              <div style="font-size: 36px; font-weight: 700; font-family: var(--font-mono); color: var(--gray-900);">${S.avgProcessDays}일</div>
+              <div style="font-size: 12px; color: var(--gray-500);">전체 평균 처리 소요일</div>
+            </div>
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">시공사별 평균 처리일</div>
+            ${S.contractors.sort((a,b) => b.avgDays - a.avgDays).map(c => `
+              <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px;">
+                <span style="width: 80px; color: var(--gray-600);">${c.name}</span>
+                <div style="flex: 1; height: 8px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                  <div style="width: ${Math.round(c.avgDays / 5 * 100)}%; height: 100%; background: ${c.avgDays > 4 ? 'var(--d-danger)' : c.avgDays > 3 ? 'var(--d-warn)' : 'var(--d-ok)'}; opacity: 0.6; border-radius: 2px;"></div>
+                </div>
+                <span style="width: 40px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: ${c.avgDays > 4 ? 'var(--d-danger)' : 'var(--gray-600)'};">${c.avgDays}일</span>
+              </div>
+            `).join('')}
+          `;
+        } else {
+          bodyHTML = `<div style="font-size: 13px; color: var(--gray-600); padding: 20px 0; text-align: center;">상세 데이터를 불러오는 중입니다...</div>`;
+        }
+
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-secondary btn-sm" onclick="location.href='defect-list.html'">목록에서 보기</button>
+        `;
+      }
+      else {
+        titleText = '상세 정보';
+        bodyHTML = '<div style="padding: 20px; text-align: center; font-size: 13px; color: var(--gray-500);">상세 데이터를 불러오고 있습니다.</div>';
+      }
+
+      title.textContent = titleText;
+      body.innerHTML = bodyHTML;
+      footer.innerHTML = footerHTML;
+      overlay.classList.add('active');
+    }
+
+    function closeDrill() {
+      document.getElementById('drillOverlay').classList.remove('active');
+    }
+  </script>
+
+  <style>
+    @media (max-width: 768px) {
+      .dash-grid-2 { grid-template-columns: 1fr !important; }
+    }
+  </style>
+</body>
+</html>

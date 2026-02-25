@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하자 이걸로 - 하자 목록</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .list-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--border-radius-sm);
+      overflow: hidden;
+    }
+    .view-toggle button {
+      background: #fff;
+      border: none;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--gray-600);
+      border-right: 1px solid var(--gray-300);
+      font-family: var(--font-family);
+    }
+    .view-toggle button:last-child { border-right: none; }
+    .view-toggle button.active {
+      background: var(--primary-600);
+      color: #fff;
+    }
+    .batch-actions {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: var(--primary-50);
+      border: 1px solid var(--primary-200);
+      border-radius: var(--border-radius);
+      margin-bottom: 12px;
+    }
+    .batch-actions.active {
+      display: flex;
+    }
+    .batch-actions .batch-count {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--primary-700);
+    }
+    /* Kanban view */
+    .kanban-view {
+      display: none;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+    }
+    .kanban-view.active {
+      display: grid;
+    }
+    .kanban-column {
+      background: var(--gray-50);
+      border-radius: var(--border-radius);
+      padding: 12px;
+      min-height: 300px;
+    }
+    .kanban-column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    .kanban-column-header h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    .kanban-column-header .count {
+      font-size: 11px;
+      color: var(--gray-500);
+      background: var(--gray-200);
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+    .kanban-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius-sm);
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .kanban-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--gray-300);
+    }
+    .kanban-card .kc-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--primary-600);
+      margin-bottom: 4px;
+    }
+    .kanban-card .kc-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gray-800);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .kanban-card .kc-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kanban-card .kc-location {
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      margin-top: 16px;
+    }
+    .pagination button {
+      padding: 6px 10px;
+      font-size: 12px;
+      border: 1px solid var(--gray-300);
+      background: #fff;
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      color: var(--gray-600);
+      font-family: var(--font-family);
+    }
+    .pagination button.active {
+      background: var(--primary-600);
+      color: #fff;
+      border-color: var(--primary-600);
+    }
+    .pagination button:hover:not(.active) {
+      background: var(--gray-50);
+    }
+    .urgent-indicator {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--status-rejected);
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-content">
+      <header class="top-header" id="topHeader"></header>
+
+      <div class="page-body">
+        <!-- Header row with view toggle -->
+        <div class="list-header-row">
+          <div>
+            <h2 style="font-size: 16px; font-weight: 600; color: var(--gray-900);">하자 목록</h2>
+            <span class="text-sm text-muted" id="totalCountLabel"></span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="view-toggle">
+              <button class="active" onclick="switchView('table', this)">목록</button>
+              <button onclick="switchView('kanban', this)">칸반</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="location.href='defect-register.html'">+ 하자 등록</button>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar" id="filterBar">
+          <div class="filter-item">
+            <label>상태</label>
+            <select id="filterStatus" onchange="applyFilters()">
+              <option value="">전체</option>
+              <option value="PENDING">접수대기</option>
+              <option value="RECEIVED">접수완료</option>
+              <option value="ASSIGNED">배정완료</option>
+              <option value="IN_PROGRESS">처리중</option>
+              <option value="COMPLETED">처리완료</option>
+              <option value="REJECTED">반려</option>
+              <option value="VERIFIED">검수완료</option>
+              <option value="CLOSED">종결</option>
+            </select>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-item">
+            <label>공종</label>
+            <select id="filterWorkType" onchange="applyFilters()">
+              <option value="">전체</option>
+              ${MOCK.workTypes.map(w => `<option value="${w}">${w}</option>`).join('')}
+            </select>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-item">
+            <label>동</label>
+            <select id="filterBuilding" onchange="applyFilters()">
+              <option value="">전체</option>
+              <option value="101">101동</option>
+              <option value="102">102동</option>
+              <option value="103">103동</option>
+            </select>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-item">
+            <label>심각도</label>
+            <select id="filterSeverity" onchange="applyFilters()">
+              <option value="">전체</option>
+              <option value="1">경미</option>
+              <option value="2">보통</option>
+              <option value="3">중대</option>
+              <option value="4">긴급</option>
+            </select>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-item search-input-wrap">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="filterSearch" placeholder="접수번호, 설명 검색..." onkeyup="applyFilters()" style="padding-left: 28px; width: 200px;">
+          </div>
+          <div class="filter-count" id="filterCount"></div>
+        </div>
+
+        <!-- Batch actions -->
+        <div class="batch-actions" id="batchActions">
+          <span class="batch-count" id="batchCount">0건 선택</span>
+          <button class="btn btn-secondary btn-sm">일괄 배정</button>
+          <button class="btn btn-secondary btn-sm">엑셀 다운로드</button>
+        </div>
+
+        <!-- Table view -->
+        <div class="card" id="tableView">
+          <div style="overflow-x: auto;">
+            <table class="data-table" id="defectTable"></table>
+          </div>
+          <div class="card-footer">
+            <div class="pagination" id="pagination"></div>
+          </div>
+        </div>
+
+        <!-- Kanban view -->
+        <div class="kanban-view" id="kanbanView"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    let filteredDefects = [...MOCK.defects];
+    let selectedIds = new Set();
+    let currentView = 'table';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHeader('하자 목록', [
+        { label: '대시보드', href: 'dashboard.html' },
+        { label: '하자 목록' }
+      ]);
+      applyFilters();
+    });
+
+    function applyFilters() {
+      const status = document.getElementById('filterStatus').value;
+      const workType = document.getElementById('filterWorkType').value;
+      const building = document.getElementById('filterBuilding').value;
+      const severity = document.getElementById('filterSeverity').value;
+      const search = document.getElementById('filterSearch').value.toLowerCase();
+
+      filteredDefects = MOCK.defects.filter(d => {
+        if (status && d.status !== status) return false;
+        if (workType && d.workType !== workType) return false;
+        if (building && d.building !== building) return false;
+        if (severity && d.severity !== parseInt(severity)) return false;
+        if (search) {
+          const haystack = `${d.receiptNumber} ${d.description} ${d.building} ${d.unit} ${d.room} ${d.workType}`.toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+
+      document.getElementById('totalCountLabel').textContent = `${MOCK.currentProject.name}`;
+      document.getElementById('filterCount').textContent = `${filteredDefects.length}건`;
+
+      renderTableView();
+      renderKanbanView();
+    }
+
+    function renderTableView() {
+      const table = document.getElementById('defectTable');
+      let html = `
+        <thead>
+          <tr>
+            <th style="width: 32px;"><input type="checkbox" onchange="toggleAllCheck(this)"></th>
+            <th>접수번호</th>
+            <th>위치</th>
+            <th>공종/유형</th>
+            <th>심각도</th>
+            <th>상태</th>
+            <th>시공사</th>
+            <th>약속일</th>
+            <th>등록일시</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      filteredDefects.forEach(d => {
+        const checked = selectedIds.has(d.id) ? 'checked' : '';
+        html += `
+          <tr onclick="if(event.target.type !== 'checkbox') location.href='defect-detail.html?id=${d.id}'">
+            <td><input type="checkbox" ${checked} onchange="toggleCheck('${d.id}', this)" onclick="event.stopPropagation()"></td>
+            <td class="cell-id">
+              ${d.isUrgent ? '<span class="urgent-indicator"></span>' : ''}${d.receiptNumber}
+            </td>
+            <td>${d.building}동 ${d.unit}호<br><span class="cell-muted">${d.room} ${d.position}</span></td>
+            <td>${d.workType}<br><span class="cell-muted">${d.defectType}</span></td>
+            <td>${severityBadge(d.severity)}</td>
+            <td>${statusBadge(d.status)}</td>
+            <td>${d.contractor || '<span class="cell-muted">미배정</span>'}</td>
+            <td class="cell-muted">${d.promiseDate || '-'}</td>
+            <td class="cell-muted">${formatDate(d.createdAt)}</td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody>';
+      table.innerHTML = html;
+
+      // Pagination (mock)
+      document.getElementById('pagination').innerHTML = `
+        <button disabled>&lt;</button>
+        <button class="active">1</button>
+        <button>2</button>
+        <button>3</button>
+        <button>&gt;</button>
+      `;
+    }
+
+    function renderKanbanView() {
+      const kanban = document.getElementById('kanbanView');
+      const columns = ['PENDING', 'RECEIVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED'];
+
+      let html = '';
+      columns.forEach(status => {
+        const items = filteredDefects.filter(d => d.status === status);
+        const s = MOCK.statuses[status];
+        html += `
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <h4>${s.label}</h4>
+              <span class="count">${items.length}</span>
+            </div>
+        `;
+        items.forEach(d => {
+          html += `
+            <div class="kanban-card" onclick="location.href='defect-detail.html?id=${d.id}'">
+              <div class="kc-id">${d.receiptNumber}</div>
+              <div class="kc-title">${d.description.substring(0, 40)}${d.description.length > 40 ? '...' : ''}</div>
+              <div class="kc-footer">
+                <span class="kc-location">${d.building}동 ${d.unit}호</span>
+                ${severityBadge(d.severity)}
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      });
+
+      kanban.innerHTML = html;
+    }
+
+    function switchView(view, btn) {
+      currentView = view;
+      document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (view === 'table') {
+        document.getElementById('tableView').style.display = 'block';
+        document.getElementById('kanbanView').classList.remove('active');
+      } else {
+        document.getElementById('tableView').style.display = 'none';
+        document.getElementById('kanbanView').classList.add('active');
+      }
+    }
+
+    function toggleCheck(id, checkbox) {
+      if (checkbox.checked) {
+        selectedIds.add(id);
+      } else {
+        selectedIds.delete(id);
+      }
+      updateBatchActions();
+    }
+
+    function toggleAllCheck(checkbox) {
+      if (checkbox.checked) {
+        filteredDefects.forEach(d => selectedIds.add(d.id));
+      } else {
+        selectedIds.clear();
+      }
+      renderTableView();
+      updateBatchActions();
+    }
+
+    function updateBatchActions() {
+      const bar = document.getElementById('batchActions');
+      if (selectedIds.size > 0) {
+        bar.classList.add('active');
+        document.getElementById('batchCount').textContent = `${selectedIds.size}건 선택`;
+      } else {
+        bar.classList.remove('active');
+      }
+    }
+  </script>
+</body>
+</html>

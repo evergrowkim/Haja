@@ -1,0 +1,14 @@
+.DS_Store
+*.pyc
+__pycache__/
+node_modules/
+.nuxt/
+.output/
+dist/
+.env
+.env.*
+*.log
+
+# 기존 소스 (API 키 포함 - 별도 private 레포 관리)
+atrion30_back-main/
+atrion30_front-main/

@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하자 이걸로 - 보고서/통계</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* =============================================
+       Reports v2 — Actionable, Minimal, Monochrome
+       Color philosophy:
+         Base: gray scale only
+         Semantic: ONE muted tone per meaning
+           - overdue/danger: #b04040 (muted red-brown)
+           - ok/done: #4a7c6f (muted sage)
+           - caution/active: #8a7340 (muted amber-brown)
+           - info/link: #4a6a8a (muted steel-blue)
+         No saturated colors. No gradients. No shadows on charts.
+       ============================================= */
+    :root {
+      --rpt-danger: #9e3c3c;
+      --rpt-danger-bg: #faf5f5;
+      --rpt-ok: #4a7c6f;
+      --rpt-ok-bg: #f5faf8;
+      --rpt-warn: #8a7340;
+      --rpt-warn-bg: #faf8f2;
+      --rpt-info: #4a6a8a;
+      --rpt-info-bg: #f5f8fb;
+      --rpt-bar: #c8ccd0;
+      --rpt-bar-fill: #6b7280;
+    }
+
+    /* ---- Page header ---- */
+    .rpt-page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .rpt-page-header h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 2px;
+    }
+    .rpt-page-header .rpt-sub {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+    .rpt-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rpt-controls select {
+      padding: 5px 10px;
+      font-size: 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--gray-700);
+    }
+    .rpt-export-btn {
+      padding: 5px 12px;
+      font-size: 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--gray-600);
+      cursor: pointer;
+      font-family: var(--font-family);
+    }
+    .rpt-export-btn:hover {
+      background: var(--gray-50);
+      border-color: var(--gray-400);
+    }
+
+    /* ---- Alert banner (overdue/critical) ---- */
+    .alert-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--rpt-danger-bg);
+      border: 1px solid #e8d4d4;
+      border-left: 3px solid var(--rpt-danger);
+      border-radius: 4px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: background 120ms;
+    }
+    .alert-banner:hover {
+      background: #f5edee;
+    }
+    .alert-banner .alert-icon {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--rpt-danger);
+      background: #eedcdc;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .alert-banner .alert-body {
+      flex: 1;
+    }
+    .alert-banner .alert-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--rpt-danger);
+    }
+    .alert-banner .alert-desc {
+      font-size: 11px;
+      color: var(--gray-600);
+      margin-top: 1px;
+    }
+    .alert-banner .alert-action {
+      font-size: 12px;
+      color: var(--rpt-danger);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* ---- KPI strip ---- */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      background: var(--gray-200);
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .kpi-item {
+      background: #fff;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: background 120ms;
+      position: relative;
+    }
+    .kpi-item:hover {
+      background: var(--gray-50);
+    }
+    .kpi-item.active {
+      background: var(--gray-50);
+    }
+    .kpi-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gray-700);
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-bottom: 4px;
+      letter-spacing: 0.02em;
+    }
+    .kpi-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-unit {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .kpi-sub {
+      font-size: 10px;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+    .kpi-value.danger { color: var(--rpt-danger); }
+    .kpi-value.ok { color: var(--rpt-ok); }
+    .kpi-value.warn { color: var(--rpt-warn); }
+
+    /* ---- Section title ---- */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title .section-action {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--rpt-info);
+      cursor: pointer;
+    }
+    .section-title .section-action:hover {
+      text-decoration: underline;
+    }
+
+    /* ---- Grid layouts ---- */
+    .rpt-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .rpt-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .rpt-row-2-1 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* ---- Minimal card ---- */
+    .rpt-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+    }
+    .rpt-card-head {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .rpt-card-head h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    .rpt-card-head .card-tool {
+      font-size: 11px;
+      color: var(--gray-400);
+      cursor: pointer;
+    }
+    .rpt-card-head .card-tool:hover {
+      color: var(--gray-600);
+    }
+    .rpt-card-body {
+      padding: 16px;
+    }
+    .rpt-card-body.no-pad {
+      padding: 0;
+    }
+
+    /* ---- Horizontal bar chart (monochrome) ---- */
+    .hbar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .hbar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 3px 0;
+      border-radius: 3px;
+      transition: background 80ms;
+    }
+    .hbar-row:hover {
+      background: var(--gray-50);
+      margin: 0 -6px;
+      padding: 3px 6px;
+    }
+    .hbar-label {
+      width: 72px;
+      font-size: 12px;
+      color: var(--gray-600);
+      text-align: right;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hbar-track {
+      flex: 1;
+      height: 14px;
+      background: var(--gray-100);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .hbar-fill {
+      height: 100%;
+      background: var(--rpt-bar-fill);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    .hbar-val {
+      width: 36px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-700);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    /* ---- Stacked progress (single row) ---- */
+    .stacked-row {
+      display: flex;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      background: var(--gray-100);
+    }
+    .stacked-seg {
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+
+    /* ---- Mini table ---- */
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .mini-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+    .mini-table td {
+      padding: 9px 12px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-700);
+    }
+    .mini-table tbody tr {
+      cursor: pointer;
+      transition: background 80ms;
+    }
+    .mini-table tbody tr:hover {
+      background: var(--gray-50);
+    }
+    .mini-table .num {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .mini-table .mono {
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .mini-table .muted {
+      color: var(--gray-400);
+    }
+
+    /* ---- Inline progress bar (thin) ---- */
+    .inline-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .inline-bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 2px;
+    }
+    .inline-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--rpt-bar-fill);
+    }
+    .inline-bar-text {
+      font-size: 11px;
+      font-weight: 600;
+      width: 32px;
+      text-align: right;
+      color: var(--gray-600);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---- Overdue list (compact) ---- */
+    .overdue-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--gray-100);
+      cursor: pointer;
+      transition: background 80ms;
+    }
+    .overdue-row:last-child { border-bottom: none; }
+    .overdue-row:hover { background: var(--gray-50); }
+    .overdue-days {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--rpt-danger);
+      background: var(--rpt-danger-bg);
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      min-width: 40px;
+      text-align: center;
+    }
+    .overdue-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .overdue-title {
+      font-size: 12px;
+      color: var(--gray-700);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .overdue-meta {
+      font-size: 10px;
+      color: var(--gray-400);
+      margin-top: 1px;
+    }
+
+    /* ---- Heat cells (for building grid) ---- */
+    .heat-grid {
+      display: grid;
+      gap: 2px;
+    }
+    .heat-cell {
+      padding: 10px 8px;
+      text-align: center;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: opacity 80ms;
+    }
+    .heat-cell:hover { opacity: 0.8; }
+    .heat-cell .heat-label {
+      font-size: 10px;
+      color: inherit;
+      opacity: 0.7;
+      margin-bottom: 2px;
+    }
+    .heat-cell .heat-value {
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---- Trend sparkline (CSS-only) ---- */
+    .sparkline {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 40px;
+    }
+    .spark-bar {
+      flex: 1;
+      border-radius: 2px 2px 0 0;
+      background: var(--gray-300);
+      min-width: 6px;
+      transition: height 0.3s ease;
+      position: relative;
+    }
+    .spark-bar.highlight {
+      background: var(--rpt-bar-fill);
+    }
+    .spark-bar:hover {
+      opacity: 0.7;
+    }
+    .spark-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+    .spark-labels span {
+      font-size: 9px;
+      color: var(--gray-400);
+    }
+
+    /* ---- Popup / Drill-down panel ---- */
+    .drill-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.25);
+      z-index: 200;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 60px;
+    }
+    .drill-overlay.active {
+      display: flex;
+    }
+    .drill-panel {
+      background: #fff;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 680px;
+      max-height: 75vh;
+      overflow-y: auto;
+      border: 1px solid var(--gray-200);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .drill-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
+    }
+    .drill-head h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .drill-close {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .drill-close:hover { color: var(--gray-700); }
+    .drill-body {
+      padding: 20px;
+    }
+    .drill-body .drill-stat-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .drill-stat {
+      flex: 1;
+      padding: 12px;
+      background: var(--gray-50);
+      border-radius: 4px;
+      text-align: center;
+    }
+    .drill-stat .ds-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+    .drill-stat .ds-label {
+      font-size: 10px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+    .drill-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--gray-100);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 768px) {
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .rpt-row-2, .rpt-row-3, .rpt-row-2-1 { grid-template-columns: 1fr; }
+      .rpt-controls { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-content">
+      <header class="top-header" id="topHeader"></header>
+
+      <div class="page-body">
+
+        <!-- Page header -->
+        <div class="rpt-page-header">
+          <div>
+            <h2>보고서</h2>
+            <div class="rpt-sub" id="rptProjectName"></div>
+          </div>
+          <div class="rpt-controls">
+            <select id="periodSelect" onchange="handlePeriodChange()">
+              <option value="7">최근 7일</option>
+              <option value="30" selected>최근 30일</option>
+              <option value="90">최근 90일</option>
+              <option value="all">전체 기간</option>
+            </select>
+            <button class="rpt-export-btn" onclick="showToast('PDF 보고서를 생성합니다')">PDF</button>
+            <button class="rpt-export-btn" onclick="showToast('엑셀 파일을 다운로드합니다')">Excel</button>
+          </div>
+        </div>
+
+        <!-- Alert: Overdue -->
+        <div class="alert-banner" id="alertBanner" onclick="openDrill('overdue')">
+          <div class="alert-icon">!</div>
+          <div class="alert-body">
+            <div class="alert-title">기한 초과</div>
+            <div class="alert-desc">SLA 초과 하자가 있습니다. 독촉 조치가 필요합니다.</div>
+          </div>
+          <div class="alert-action">상세 확인 &rarr;</div>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="kpi-strip">
+          <div class="kpi-item active" onclick="openDrill('total')">
+            <div class="kpi-label">전체</div>
+            <div class="kpi-row">
+              <span class="kpi-value" id="kTotal">-</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <div class="kpi-sub">누적 등록</div>
+          </div>
+          <div class="kpi-item" onclick="openDrill('open')">
+            <div class="kpi-label">미처리</div>
+            <div class="kpi-row">
+              <span class="kpi-value warn" id="kOpen">-</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <div class="kpi-sub">접수대기 + 배정 + 처리중</div>
+          </div>
+          <div class="kpi-item" onclick="openDrill('done')">
+            <div class="kpi-label">처리완료</div>
+            <div class="kpi-row">
+              <span class="kpi-value ok" id="kDone">-</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <div class="kpi-sub">검수완료 + 종결 포함</div>
+          </div>
+          <div class="kpi-item" onclick="openDrill('overdue')">
+            <div class="kpi-label">기한 초과</div>
+            <div class="kpi-row">
+              <span class="kpi-value danger" id="kOverdue">-</span>
+              <span class="kpi-unit">건</span>
+            </div>
+            <div class="kpi-sub">약속일 경과</div>
+          </div>
+          <div class="kpi-item">
+            <div class="kpi-label">평균 처리</div>
+            <div class="kpi-row">
+              <span class="kpi-value">3.2</span>
+              <span class="kpi-unit">일</span>
+            </div>
+            <div class="kpi-sub">완료 건 기준</div>
+          </div>
+        </div>
+
+        <!-- Row 1: Progress overview + Overdue list -->
+        <div class="rpt-row-2-1">
+
+          <!-- Left: Visual overview -->
+          <div>
+            <!-- Processing pipeline -->
+            <div class="rpt-card" style="margin-bottom: 16px;">
+              <div class="rpt-card-head">
+                <h4>처리 파이프라인</h4>
+                <span class="card-tool" onclick="openDrill('pipeline')">상세</span>
+              </div>
+              <div class="rpt-card-body">
+                <div id="pipelineChart"></div>
+              </div>
+            </div>
+
+            <!-- Trend -->
+            <div class="rpt-card">
+              <div class="rpt-card-head">
+                <h4>일별 추이 (등록 / 완료)</h4>
+              </div>
+              <div class="rpt-card-body" id="trendChart"></div>
+            </div>
+          </div>
+
+          <!-- Right: Overdue + Urgent -->
+          <div>
+            <div class="rpt-card" style="margin-bottom: 16px;">
+              <div class="rpt-card-head">
+                <h4>기한 초과 목록</h4>
+                <span class="card-tool" onclick="openDrill('overdue')">전체</span>
+              </div>
+              <div class="rpt-card-body no-pad" id="overdueList"></div>
+            </div>
+
+            <div class="rpt-card">
+              <div class="rpt-card-head">
+                <h4>처리율</h4>
+              </div>
+              <div class="rpt-card-body" id="completionGauge"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Work type + Building breakdown -->
+        <div class="rpt-row-2">
+          <!-- Work type -->
+          <div class="rpt-card">
+            <div class="rpt-card-head">
+              <h4>공종별 현황</h4>
+              <span class="card-tool" onclick="openDrill('worktype')">상세</span>
+            </div>
+            <div class="rpt-card-body" id="workTypeChart"></div>
+          </div>
+
+          <!-- Building heatmap -->
+          <div class="rpt-card">
+            <div class="rpt-card-head">
+              <h4>동별 하자 밀도</h4>
+              <span class="card-tool" onclick="openDrill('building')">상세</span>
+            </div>
+            <div class="rpt-card-body" id="buildingHeat"></div>
+          </div>
+        </div>
+
+        <!-- Row 3: Contractor performance + AI -->
+        <div class="rpt-row-2">
+          <!-- Contractor -->
+          <div class="rpt-card">
+            <div class="rpt-card-head">
+              <h4>시공사 실적</h4>
+              <span class="card-tool" onclick="openDrill('contractor')">상세</span>
+            </div>
+            <div class="rpt-card-body no-pad" id="contractorTable"></div>
+          </div>
+
+          <!-- AI performance -->
+          <div class="rpt-card">
+            <div class="rpt-card-head">
+              <h4>AI 분류 성능</h4>
+              <span class="card-tool" onclick="openDrill('ai')">상세</span>
+            </div>
+            <div class="rpt-card-body" id="aiSummary"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Drill-down popup -->
+  <div class="drill-overlay" id="drillOverlay" onclick="if(event.target===this)closeDrill()">
+    <div class="drill-panel">
+      <div class="drill-head">
+        <h3 id="drillTitle">상세 정보</h3>
+        <button class="drill-close" onclick="closeDrill()">&times;</button>
+      </div>
+      <div class="drill-body" id="drillBody"></div>
+      <div class="drill-footer" id="drillFooter"></div>
+    </div>
+  </div>
+
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    /* ============================================
+       Reports v2 — 10K Scale Data
+       Uses MOCK.scaledStats for all visualizations
+       ============================================ */
+    const S = MOCK.scaledStats;
+    const SC = S.statusCounts;
+
+    const stats = {
+      total: S.total,
+      open: S.openCount,
+      done: S.completedCount,
+      overdue: S.overdueCount,
+      avgDays: S.avgProcessDays,
+    };
+
+    /* ============================================
+       Init
+       ============================================ */
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHeader('보고서/통계', [
+        { label: '대시보드', href: 'dashboard.html' },
+        { label: '보고서' }
+      ]);
+      document.getElementById('rptProjectName').textContent =
+        MOCK.currentProject.name + ' (' + MOCK.currentProject.code + ')';
+
+      // KPI
+      document.getElementById('kTotal').textContent = stats.total.toLocaleString();
+      document.getElementById('kOpen').textContent = stats.open.toLocaleString();
+      document.getElementById('kDone').textContent = stats.done.toLocaleString();
+      document.getElementById('kOverdue').textContent = stats.overdue.toLocaleString();
+
+      // Hide alert if no overdue
+      if (stats.overdue === 0) {
+        document.getElementById('alertBanner').style.display = 'none';
+      } else {
+        document.querySelector('.alert-title').textContent = `기한 초과 ${stats.overdue.toLocaleString()}건`;
+        document.querySelector('.alert-desc').textContent =
+          `SLA 초과 하자가 ${stats.overdue}건 있습니다. 한솔설비 ${S.overdueBreakdown.byContractor['한솔설비']}건, 대한도장 ${S.overdueBreakdown.byContractor['대한도장']}건 집중. 독촉 조치가 필요합니다.`;
+      }
+
+      renderPipeline();
+      renderTrend();
+      renderOverdue();
+      renderCompletion();
+      renderWorkType();
+      renderBuildingHeat();
+      renderContractor();
+      renderAiSummary();
+    });
+
+    /* ============================================
+       Renderers
+       ============================================ */
+
+    function renderPipeline() {
+      const stages = [
+        { key: 'PENDING', label: '접수대기', count: SC.PENDING },
+        { key: 'RECEIVED', label: '접수완료', count: SC.RECEIVED },
+        { key: 'ASSIGNED', label: '배정완료', count: SC.ASSIGNED },
+        { key: 'IN_PROGRESS', label: '처리중', count: SC.IN_PROGRESS },
+        { key: 'COMPLETED', label: '처리완료', count: SC.COMPLETED },
+        { key: 'VERIFIED', label: '검수완료', count: SC.VERIFIED },
+        { key: 'CLOSED', label: '종결', count: SC.CLOSED },
+      ];
+      const rejected = SC.REJECTED;
+      const maxStage = Math.max(...stages.map(s => s.count), 1);
+
+      let html = '<div style="display: flex; gap: 4px; align-items: flex-end; height: 60px; margin-bottom: 8px;">';
+      stages.forEach(s => {
+        const h = Math.max(8, Math.round(s.count / maxStage * 100));
+        html += `
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer;"
+               onclick="openDrill('status_${s.key}')" title="${s.label}: ${s.count.toLocaleString()}건">
+            <span style="font-size: 10px; font-weight: 600; color: var(--gray-700); margin-bottom: 2px;">${s.count.toLocaleString()}</span>
+            <div style="width: 100%; height: ${h}%; background: var(--rpt-bar-fill); border-radius: 3px 3px 0 0; min-height: 4px; opacity: ${s.count > 0 ? 1 : 0.3};"></div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      // Labels
+      html += '<div style="display: flex; gap: 4px;">';
+      stages.forEach(s => {
+        html += `<div style="flex: 1; text-align: center; font-size: 9px; color: var(--gray-500);">${s.label}</div>`;
+      });
+      html += '</div>';
+
+      // Rejected note
+      if (rejected > 0) {
+        html += `<div style="margin-top: 10px; font-size: 11px; color: var(--rpt-danger); display: flex; align-items: center; gap: 4px;">
+          <span style="width: 6px; height: 6px; background: var(--rpt-danger); border-radius: 50%;"></span>
+          반려 ${rejected.toLocaleString()}건 (재시공 필요)
+        </div>`;
+      }
+
+      // Overall stacked bar
+      const donePct = S.completionRate;
+      const openPct = 100 - donePct;
+      html += `
+        <div style="margin-top: 14px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="font-size: 10px; color: var(--gray-500);">전체 진행</span>
+            <span style="font-size: 10px; font-weight: 600; color: var(--gray-600);">${donePct}% 완료</span>
+          </div>
+          <div class="stacked-row">
+            <div class="stacked-seg" style="width: ${donePct}%; background: var(--rpt-ok);"></div>
+            <div class="stacked-seg" style="width: ${openPct}%; background: var(--rpt-bar);"></div>
+          </div>
+        </div>
+      `;
+
+      // Throughput
+      const lastWeek = S.weeklyTrend[S.weeklyTrend.length - 1];
+      html += `
+        <div style="margin-top: 10px; display: flex; gap: 16px; font-size: 10px; color: var(--gray-500);">
+          <span>이번 주 접수 <strong style="color: var(--gray-700); font-variant-numeric: tabular-nums;">${lastWeek.registered}</strong>건</span>
+          <span>이번 주 처리 <strong style="color: var(--rpt-ok); font-variant-numeric: tabular-nums;">${lastWeek.completed}</strong>건</span>
+          <span style="color: ${lastWeek.completed >= lastWeek.registered ? 'var(--rpt-ok)' : 'var(--rpt-warn)'};">
+            ${lastWeek.completed >= lastWeek.registered ? '처리 > 접수 (양호)' : '접수 > 처리 (적체 증가)'}
+          </span>
+        </div>
+      `;
+
+      document.getElementById('pipelineChart').innerHTML = html;
+    }
+
+    function renderTrend() {
+      const data = S.dailyTrend;
+      const maxVal = Math.max(...data.map(d => Math.max(d.reg, d.comp)), 1);
+
+      let html = '<div style="display: flex; gap: 4px; align-items: flex-end; height: 56px; margin-bottom: 4px;">';
+      data.forEach((d, i) => {
+        const rH = Math.round(d.reg / maxVal * 100);
+        const cH = Math.round(d.comp / maxVal * 100);
+        const isLast = i === data.length - 1;
+        html += `
+          <div style="flex: 1; display: flex; gap: 1px; align-items: flex-end; height: 100%;">
+            <div style="flex: 1; height: ${rH}%; background: ${isLast ? 'var(--rpt-bar-fill)' : 'var(--gray-300)'}; border-radius: 2px 2px 0 0; min-height: ${d.reg?3:0}px;" title="${d.date} 등록 ${d.reg}건"></div>
+            <div style="flex: 1; height: ${cH}%; background: ${isLast ? 'var(--rpt-ok)' : '#a3b0a8'}; border-radius: 2px 2px 0 0; min-height: ${d.comp?3:0}px;" title="${d.date} 완료 ${d.comp}건"></div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      html += '<div class="spark-labels"><span>' + data[0].date + '</span><span>' + data[data.length-1].date + '</span></div>';
+      html += `
+        <div style="display: flex; gap: 14px; margin-top: 8px;">
+          <span style="font-size: 10px; color: var(--gray-500); display: flex; align-items: center; gap: 4px;">
+            <span style="width: 8px; height: 3px; background: var(--rpt-bar-fill); border-radius: 1px;"></span> 등록
+          </span>
+          <span style="font-size: 10px; color: var(--gray-500); display: flex; align-items: center; gap: 4px;">
+            <span style="width: 8px; height: 3px; background: var(--rpt-ok); border-radius: 1px;"></span> 완료
+          </span>
+          <span style="font-size: 10px; color: var(--gray-400); margin-left: auto;">최근 14일</span>
+        </div>
+      `;
+      document.getElementById('trendChart').innerHTML = html;
+    }
+
+    function renderOverdue() {
+      const od = S.overdueBreakdown;
+      if (stats.overdue === 0) {
+        document.getElementById('overdueList').innerHTML = `
+          <div style="padding: 24px; text-align: center; font-size: 12px; color: var(--gray-400);">기한 초과 항목 없음</div>
+        `;
+        return;
+      }
+
+      // Show overdue breakdown by days (aggregated, not individual items)
+      let html = '';
+      const dayRanges = [
+        { label: 'D+1~3', count: od.byDays['1-3'], severity: 'warn' },
+        { label: 'D+4~7', count: od.byDays['4-7'], severity: 'warn' },
+        { label: 'D+8~14', count: od.byDays['8-14'], severity: 'danger' },
+        { label: 'D+15+', count: od.byDays['15+'], severity: 'danger' },
+      ];
+      dayRanges.forEach(r => {
+        html += `
+          <div class="overdue-row" onclick="openDrill('overdue')">
+            <div class="overdue-days">${r.label}</div>
+            <div class="overdue-info">
+              <div class="overdue-title">${r.count.toLocaleString()}건</div>
+              <div class="overdue-meta">SLA 초과 하자</div>
+            </div>
+          </div>
+        `;
+      });
+
+      // Top contractor overdue
+      const topContractors = Object.entries(od.byContractor).sort((a,b) => b[1] - a[1]).slice(0, 3);
+      html += `<div style="padding: 8px 12px; font-size: 10px; color: var(--gray-500); border-top: 1px solid var(--gray-100);">
+        시공사 집중: ${topContractors.map(([n, c]) => `${n} ${c}건`).join(', ')}
+      </div>`;
+
+      document.getElementById('overdueList').innerHTML = html;
+    }
+
+    function renderCompletion() {
+      const rate = S.completionRate;
+      const circumference = 2 * Math.PI * 42;
+      const offset = circumference - (rate / 100) * circumference;
+
+      // SLA gauge (similar to dashboard)
+      const sla = S.sla;
+      const slaTotal = sla.withinSLA + sla.nearSLA + sla.overSLA;
+      const slaRate = Math.round(sla.withinSLA / slaTotal * 100);
+
+      let html = `
+        <div style="text-align: center; padding: 8px 0;">
+          <svg width="100" height="100" viewBox="0 0 100 100" style="transform: rotate(-90deg);">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="var(--gray-200)" stroke-width="6"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="var(--rpt-ok)" stroke-width="6"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"
+              style="transition: stroke-dashoffset 0.6s ease;"/>
+          </svg>
+          <div style="margin-top: -68px; position: relative;">
+            <div style="font-size: 22px; font-weight: 700; color: var(--gray-800);">${rate}%</div>
+            <div style="font-size: 10px; color: var(--gray-500);">처리율</div>
+          </div>
+        </div>
+        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center;">
+          <div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--gray-800);">${stats.done.toLocaleString()}</div>
+            <div style="font-size: 10px; color: var(--gray-500);">완료</div>
+          </div>
+          <div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--gray-800);">${stats.open.toLocaleString()}</div>
+            <div style="font-size: 10px; color: var(--gray-500);">미처리</div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--gray-100); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; text-align: center; font-size: 10px;">
+          <div><span style="color: var(--rpt-ok); font-weight: 600;">SLA 이내</span><br>${sla.withinSLA.toLocaleString()}</div>
+          <div><span style="color: var(--rpt-warn); font-weight: 600;">SLA 임박</span><br>${sla.nearSLA.toLocaleString()}</div>
+          <div><span style="color: var(--rpt-danger); font-weight: 600;">SLA 초과</span><br>${sla.overSLA.toLocaleString()}</div>
+        </div>
+      `;
+      document.getElementById('completionGauge').innerHTML = html;
+    }
+
+    function renderWorkType() {
+      const wtCounts = S.workTypeCounts;
+      const sorted = Object.entries(wtCounts).sort((a, b) => b[1] - a[1]);
+      const maxWT = sorted[0][1];
+
+      let html = '<div class="hbar-group">';
+      sorted.forEach(([type, count]) => {
+        const pct = Math.round(count / maxWT * 100);
+        const totalPct = (count / S.total * 100).toFixed(1);
+        html += `
+          <div class="hbar-row" onclick="openDrill('wt_${type}')">
+            <span class="hbar-label">${type}</span>
+            <div class="hbar-track">
+              <div class="hbar-fill" style="width: ${pct}%;"></div>
+            </div>
+            <span class="hbar-val">${count.toLocaleString()}</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+      document.getElementById('workTypeChart').innerHTML = html;
+    }
+
+    function renderBuildingHeat() {
+      const hm = S.buildingHeatmap;
+      const buildings = Object.keys(hm);
+      const maxB = Math.max(...Object.values(hm).map(b => b.total), 1);
+
+      // Horizontal bar layout (matching dashboard style)
+      let html = '<div style="display: flex; flex-direction: column; gap: 4px;">';
+      buildings.forEach(b => {
+        const data = hm[b];
+        const normalPct = ((data.total - data.overdue) / maxB * 100).toFixed(1);
+        const overduePct = (data.overdue / maxB * 100).toFixed(1);
+        html += `
+          <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="openDrill('bld_${b}')">
+            <span style="width: 36px; font-size: 11px; font-weight: 500; color: var(--gray-600); text-align: right;">${b}동</span>
+            <div style="flex: 1; display: flex; gap: 1px; height: 16px;">
+              <div style="width: ${normalPct}%; background: var(--rpt-bar-fill); border-radius: 2px 0 0 2px; height: 100%; opacity: 0.7;"></div>
+              ${data.overdue > 0 ? `<div style="width: ${overduePct}%; background: var(--rpt-danger); border-radius: 0 2px 2px 0; height: 100%; opacity: 0.7;"></div>` : ''}
+            </div>
+            <span style="width: 50px; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--gray-600); text-align: right;">${data.total.toLocaleString()}</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      // Legend
+      html += `<div style="margin-top: 10px; font-size: 10px; color: var(--gray-500); display: flex; gap: 12px;">
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: var(--rpt-bar-fill); border-radius: 2px; opacity: 0.7;"></span> 정상</span>
+        <span style="display: flex; align-items: center; gap: 4px; color: var(--rpt-danger);"><span style="width: 10px; height: 10px; background: var(--rpt-danger); border-radius: 2px; opacity: 0.7;"></span> SLA 초과</span>
+        <span style="margin-left: auto; color: var(--gray-400);">클릭하여 층별 상세</span>
+      </div>`;
+
+      document.getElementById('buildingHeat').innerHTML = html;
+    }
+
+    function renderContractor() {
+      const contractors = S.contractors.sort((a, b) => b.assigned - a.assigned);
+
+      let html = `<table class="mini-table">
+        <thead><tr>
+          <th>시공사</th>
+          <th style="text-align:right;">배정</th>
+          <th style="text-align:right;">완료</th>
+          <th>처리율</th>
+          <th style="text-align:right;">초과</th>
+          <th style="text-align:right;">평균일</th>
+        </tr></thead><tbody>`;
+
+      contractors.forEach(c => {
+        const rate = Math.round(c.completed / c.assigned * 100);
+        const rateColor = rate >= 85 ? 'var(--rpt-ok)' : rate >= 70 ? 'var(--rpt-warn)' : 'var(--rpt-danger)';
+        const overdueColor = c.overdue > 50 ? 'var(--rpt-danger)' : c.overdue > 30 ? 'var(--rpt-warn)' : 'var(--gray-600)';
+        const daysColor = c.avgDays > 4 ? 'var(--rpt-danger)' : c.avgDays > 3 ? 'var(--rpt-warn)' : 'var(--gray-600)';
+
+        html += `
+          <tr onclick="openDrill('ctr_${c.name}')">
+            <td style="font-weight: 500;">${c.name}</td>
+            <td style="text-align:right;" class="num">${c.assigned.toLocaleString()}</td>
+            <td style="text-align:right;" class="num">${c.completed.toLocaleString()}</td>
+            <td>
+              <div class="inline-bar">
+                <div class="inline-bar-track"><div class="inline-bar-fill" style="width: ${rate}%; background: ${rateColor};"></div></div>
+                <span class="inline-bar-text" style="color: ${rateColor};">${rate}%</span>
+              </div>
+            </td>
+            <td style="text-align:right; color: ${overdueColor}; font-weight: 500;" class="num">${c.overdue}</td>
+            <td style="text-align:right; color: ${daysColor};" class="num">${c.avgDays}일</td>
+          </tr>
+        `;
+      });
+      html += '</tbody></table>';
+      document.getElementById('contractorTable').innerHTML = html;
+    }
+
+    function renderAiSummary() {
+      const ai = S.aiAccuracy;
+      const sorted = Object.entries(ai)
+        .filter(([k]) => !['overall', 'lastWeek', 'target'].includes(k))
+        .sort((a, b) => b[1] - a[1]);
+      const topTypes = sorted.slice(0, 6);
+
+      let html = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div style="text-align: center;">
+            <div style="font-size: 28px; font-weight: 700; color: var(--gray-800);">${ai.overall}%</div>
+            <div style="font-size: 10px; color: var(--gray-500);">전체 정확도</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 28px; font-weight: 700; color: var(--gray-800);">${S.total.toLocaleString()}</div>
+            <div style="font-size: 10px; color: var(--gray-500);">분류 건수</div>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 10px; font-weight: 600; color: var(--gray-500); margin-bottom: 6px;">공종별 정확도 (상위 6개)</div>
+          <div class="hbar-group">
+      `;
+      topTypes.forEach(([wt, acc]) => {
+        const color = acc >= ai.target ? 'var(--rpt-ok)' : 'var(--rpt-warn)';
+        html += `
+          <div class="hbar-row" style="cursor: default;">
+            <span class="hbar-label">${wt}</span>
+            <div class="hbar-track"><div class="hbar-fill" style="width: ${acc}%; background: ${color};"></div></div>
+            <span class="hbar-val" style="color: ${color};">${acc}%</span>
+          </div>
+        `;
+      });
+      html += `
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="padding: 10px; background: var(--gray-50); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--gray-500); margin-bottom: 2px;">지난 주 정확도</div>
+            <div style="font-size: 14px; font-weight: 600; color: ${ai.lastWeek >= ai.target ? 'var(--rpt-ok)' : 'var(--rpt-warn)'};">${ai.lastWeek}%</div>
+          </div>
+          <div style="padding: 10px; background: var(--gray-50); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--gray-500); margin-bottom: 2px;">목표 정확도</div>
+            <div style="font-size: 14px; font-weight: 600;">${ai.target}%</div>
+          </div>
+          <div style="padding: 10px; background: var(--gray-50); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--gray-500); margin-bottom: 2px;">사용 모델</div>
+            <div style="font-size: 12px; font-weight: 500;">Claude 3.5 Sonnet</div>
+          </div>
+          <div style="padding: 10px; background: var(--gray-50); border-radius: 4px;">
+            <div style="font-size: 10px; color: var(--gray-500); margin-bottom: 2px;">평균 응답</div>
+            <div style="font-size: 14px; font-weight: 600;">1.3초</div>
+          </div>
+        </div>
+      `;
+      document.getElementById('aiSummary').innerHTML = html;
+    }
+
+    /* ============================================
+       Drill-down popup
+       ============================================ */
+    function openDrill(type) {
+      const overlay = document.getElementById('drillOverlay');
+      const title = document.getElementById('drillTitle');
+      const body = document.getElementById('drillBody');
+      const footer = document.getElementById('drillFooter');
+
+      let titleText = '';
+      let bodyHTML = '';
+      let footerHTML = `<button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>`;
+
+      if (type === 'overdue') {
+        titleText = 'SLA 초과 하자 분석';
+        const od = S.overdueBreakdown;
+        bodyHTML = `
+          <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 16px;">
+            총 <strong>${stats.overdue.toLocaleString()}</strong>건의 SLA 초과 하자가 있습니다. 시공사별 집중 독촉이 필요합니다.
+          </p>
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">기간별 분포</div>
+            ${Object.entries(od.byDays).map(([range, count]) => `
+              <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px;">
+                <span style="width: 60px; color: var(--gray-600);">${range}일</span>
+                <div style="flex: 1; height: 10px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                  <div style="width: ${Math.round(count/stats.overdue*100)}%; height: 100%; background: var(--rpt-danger); opacity: 0.6; border-radius: 2px;"></div>
+                </div>
+                <span style="width: 40px; text-align: right; font-variant-numeric: tabular-nums; color: var(--gray-700);">${count}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">심각도별</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+              ${Object.entries(od.bySeverity).reverse().map(([sev, count]) => `
+                <div style="text-align: center; padding: 8px; background: var(--gray-50); border-radius: 4px;">
+                  <div style="font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gray-800);">${count}</div>
+                  <div style="font-size: 10px; color: var(--gray-500);">${severityBadge(parseInt(sev))}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">시공사별</div>
+            ${Object.entries(od.byContractor).sort((a,b) => b[1] - a[1]).map(([name, count]) => `
+              <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px;">
+                <span style="width: 80px; color: var(--gray-600);">${name}</span>
+                <div style="flex: 1; height: 8px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                  <div style="width: ${Math.round(count/Math.max(...Object.values(od.byContractor))*100)}%; height: 100%; background: var(--rpt-danger); opacity: 0.5; border-radius: 2px;"></div>
+                </div>
+                <span style="width: 30px; text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; color: var(--gray-700);">${count}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('시공사에 일괄 독촉 알림을 발송합니다'); closeDrill();">일괄 독촉 알림</button>
+        `;
+
+      } else if (type === 'total' || type === 'open' || type === 'done') {
+        const configs = {
+          total: { title: '전체 하자 현황', count: stats.total },
+          open: { title: '미처리 하자 현황', count: stats.open },
+          done: { title: '처리 완료 하자 현황', count: stats.done },
+        };
+        const cfg = configs[type];
+        titleText = cfg.title;
+
+        bodyHTML = `<div class="drill-stat-row">
+          <div class="drill-stat"><div class="ds-val">${cfg.count.toLocaleString()}</div><div class="ds-label">건수</div></div>
+          <div class="drill-stat"><div class="ds-val">${S.completionRate}%</div><div class="ds-label">처리율</div></div>
+          <div class="drill-stat"><div class="ds-val">${S.avgProcessDays}일</div><div class="ds-label">평균 처리</div></div>
+        </div>`;
+
+        // Status breakdown
+        bodyHTML += `<div style="margin-bottom: 16px;">
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">상태별 분포</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            ${Object.entries(SC).map(([status, count]) => `
+              <div style="text-align: center; padding: 8px; background: var(--gray-50); border-radius: 4px;">
+                <div style="font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;">${count.toLocaleString()}</div>
+                <div style="font-size: 10px; color: var(--gray-500);">${MOCK.statuses[status].label}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+
+        // Severity breakdown
+        bodyHTML += `<div>
+          <div style="font-size: 12px; color: var(--gray-600); margin-bottom: 8px; font-weight: 600;">심각도별</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            ${Object.entries(S.severityCounts).map(([sev, count]) => `
+              <div style="text-align: center; padding: 8px; background: var(--gray-50); border-radius: 4px;">
+                <div style="font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;">${count.toLocaleString()}</div>
+                <div style="font-size: 10px;">${severityBadge(parseInt(sev))}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-secondary btn-sm" onclick="location.href='defect-list.html'">목록에서 보기</button>
+        `;
+
+      } else if (type === 'pipeline') {
+        titleText = '처리 파이프라인 상세';
+        const stages = [
+          { key: 'PENDING', count: SC.PENDING, avgDays: 0.2 },
+          { key: 'RECEIVED', count: SC.RECEIVED, avgDays: 0.3 },
+          { key: 'ASSIGNED', count: SC.ASSIGNED, avgDays: 0.8 },
+          { key: 'IN_PROGRESS', count: SC.IN_PROGRESS, avgDays: 2.4 },
+          { key: 'COMPLETED', count: SC.COMPLETED, avgDays: 1.5 },
+          { key: 'REJECTED', count: SC.REJECTED, avgDays: 1.2 },
+          { key: 'VERIFIED', count: SC.VERIFIED, avgDays: 0.6 },
+          { key: 'CLOSED', count: SC.CLOSED, avgDays: 0 },
+        ];
+        bodyHTML = `<table class="mini-table">
+          <thead><tr><th>단계</th><th style="text-align:right;">건수</th><th>비율</th><th>평균 체류</th></tr></thead><tbody>`;
+        stages.forEach(s => {
+          const pct = Math.round(s.count / stats.total * 100);
+          bodyHTML += `
+            <tr>
+              <td>${statusBadge(s.key)}</td>
+              <td style="text-align:right;" class="num">${s.count.toLocaleString()}</td>
+              <td>
+                <div class="inline-bar">
+                  <div class="inline-bar-track"><div class="inline-bar-fill" style="width: ${pct}%;"></div></div>
+                  <span class="inline-bar-text">${pct}%</span>
+                </div>
+              </td>
+              <td class="muted">${s.avgDays}일</td>
+            </tr>
+          `;
+        });
+        bodyHTML += '</tbody></table>';
+
+      } else if (type.startsWith('bld_')) {
+        const bldg = type.replace('bld_', '');
+        const data = S.buildingHeatmap[bldg];
+        if (!data) return;
+        titleText = `${bldg}동 층별 하자 분포`;
+        const maxFloor = Math.max(...data.byFloor);
+
+        bodyHTML = `<div class="drill-stat-row">
+          <div class="drill-stat"><div class="ds-val">${data.total.toLocaleString()}</div><div class="ds-label">전체</div></div>
+          <div class="drill-stat"><div class="ds-val" style="color: var(--rpt-danger);">${data.overdue}</div><div class="ds-label">SLA 초과</div></div>
+          <div class="drill-stat"><div class="ds-val">${data.avgDays}일</div><div class="ds-label">평균 처리</div></div>
+        </div>`;
+
+        bodyHTML += '<div style="display: flex; flex-direction: column; gap: 2px;">';
+        data.byFloor.map((count, i) => {
+          const floor = i + 1;
+          const pct = Math.round(count / maxFloor * 100);
+          const color = count > maxFloor * 0.8 ? 'var(--rpt-danger)' : count > maxFloor * 0.5 ? 'var(--rpt-warn)' : 'var(--rpt-bar-fill)';
+          return `
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 28px; font-size: 11px; text-align: right; color: var(--gray-500); font-variant-numeric: tabular-nums;">${floor}F</span>
+              <div style="flex: 1; height: 12px; background: var(--gray-100); border-radius: 2px; overflow: hidden;">
+                <div style="width: ${pct}%; height: 100%; background: ${color}; opacity: 0.6; border-radius: 2px;"></div>
+              </div>
+              <span style="width: 30px; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--gray-600); text-align: right;">${count}</span>
+            </div>
+          `;
+        }).reverse().forEach(h => { bodyHTML += h; });
+        bodyHTML += '</div>';
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-secondary btn-sm" onclick="location.href='defect-list.html'">목록에서 보기</button>
+        `;
+
+      } else if (type.startsWith('ctr_')) {
+        const name = type.replace('ctr_', '');
+        const c = S.contractors.find(x => x.name === name);
+        if (!c) return;
+        titleText = `${name} 실적 상세`;
+        const rate = Math.round(c.completed / c.assigned * 100);
+
+        bodyHTML = `<div class="drill-stat-row">
+          <div class="drill-stat"><div class="ds-val">${c.assigned.toLocaleString()}</div><div class="ds-label">배정</div></div>
+          <div class="drill-stat"><div class="ds-val" style="color: var(--rpt-ok);">${c.completed.toLocaleString()}</div><div class="ds-label">완료</div></div>
+          <div class="drill-stat"><div class="ds-val" ${c.overdue > 50 ? 'style="color:var(--rpt-danger)"' : ''}>${c.overdue}</div><div class="ds-label">SLA 초과</div></div>
+        </div>`;
+        bodyHTML += `
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">처리율:</span>
+              <strong style="font-variant-numeric: tabular-nums; color: ${rate >= 85 ? 'var(--rpt-ok)' : 'var(--rpt-warn)'};">${rate}%</strong>
+            </div>
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">평균 처리일:</span>
+              <strong style="font-variant-numeric: tabular-nums; color: ${c.avgDays > 4 ? 'var(--rpt-danger)' : 'var(--gray-700)'};">${c.avgDays}일</strong>
+            </div>
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">반려율:</span>
+              <strong style="font-variant-numeric: tabular-nums; color: ${c.rejectRate > 5 ? 'var(--rpt-danger)' : 'var(--gray-700)'};">${c.rejectRate}%</strong>
+            </div>
+            <div style="font-size: 12px;">
+              <span style="color: var(--gray-500);">투입 인원:</span>
+              <strong style="font-variant-numeric: tabular-nums;">${c.activeCrew}명</strong>
+            </div>
+          </div>
+          <div style="padding: 10px; background: var(--gray-50); border-radius: 4px; font-size: 12px; color: var(--gray-600);">
+            인당 배정: <strong style="font-variant-numeric: tabular-nums;">${Math.round(c.assigned / c.activeCrew)}</strong>건 /
+            인당 미처리: <strong style="font-variant-numeric: tabular-nums;">${Math.round((c.assigned - c.completed) / c.activeCrew)}</strong>건 /
+            만족도: <strong style="font-variant-numeric: tabular-nums;">${c.satisfaction}</strong>/5.0
+          </div>
+        `;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          ${c.overdue > 0 ? `<button class="btn btn-primary btn-sm" onclick="showToast('${name}에 독촉 알림을 발송합니다'); closeDrill();">독촉 알림 발송</button>` : ''}
+        `;
+
+      } else if (type.startsWith('wt_')) {
+        const wt = type.replace('wt_', '');
+        const count = S.workTypeCounts[wt] || 0;
+        const totalPct = (count / S.total * 100).toFixed(1);
+        const aiAcc = S.aiAccuracy[wt];
+        titleText = `${wt} 하자 상세`;
+
+        bodyHTML = `<div class="drill-stat-row">
+          <div class="drill-stat"><div class="ds-val">${count.toLocaleString()}</div><div class="ds-label">전체</div></div>
+          <div class="drill-stat"><div class="ds-val">${totalPct}%</div><div class="ds-label">비율</div></div>
+          ${aiAcc ? `<div class="drill-stat"><div class="ds-val">${aiAcc}%</div><div class="ds-label">AI 정확도</div></div>` : ''}
+        </div>`;
+        bodyHTML += `<div style="padding: 16px; text-align: center; font-size: 13px; color: var(--gray-500);">
+          전체 ${count.toLocaleString()}건 중 ${wt} 공종 하자입니다.<br>
+          목록에서 상세 필터링이 가능합니다.
+        </div>`;
+
+      } else if (type === 'worktype') {
+        titleText = '공종별 분석';
+        const wt = S.workTypeCounts;
+        bodyHTML = `<table class="mini-table">
+          <thead><tr><th>공종</th><th style="text-align:right;">건수</th><th>비율</th><th>AI 정확도</th></tr></thead><tbody>`;
+        Object.entries(wt).sort((a,b) => b[1]-a[1]).forEach(([type, cnt]) => {
+          const pct = (cnt / S.total * 100).toFixed(1);
+          const acc = S.aiAccuracy[type];
+          bodyHTML += `
+            <tr onclick="openDrill('wt_${type}')">
+              <td style="font-weight:500;">${type}</td>
+              <td style="text-align:right;" class="num">${cnt.toLocaleString()}</td>
+              <td>
+                <div class="inline-bar">
+                  <div class="inline-bar-track"><div class="inline-bar-fill" style="width:${Math.round(cnt/Object.values(wt)[0]*100)}%"></div></div>
+                  <span class="inline-bar-text">${pct}%</span>
+                </div>
+              </td>
+              <td style="text-align: right;" class="num">${acc ? acc + '%' : '-'}</td>
+            </tr>`;
+        });
+        bodyHTML += '</tbody></table>';
+
+      } else if (type === 'building') {
+        titleText = '동별 분석';
+        const hm = S.buildingHeatmap;
+        bodyHTML = `<table class="mini-table">
+          <thead><tr><th>동</th><th style="text-align:right;">전체</th><th style="text-align:right;">SLA 초과</th><th>평균 처리</th><th style="text-align:right;">세대수</th></tr></thead><tbody>`;
+        Object.entries(hm).forEach(([bldg, data]) => {
+          bodyHTML += `
+            <tr onclick="openDrill('bld_${bldg}')">
+              <td style="font-weight:500;">${bldg}동</td>
+              <td style="text-align:right;" class="num">${data.total.toLocaleString()}</td>
+              <td style="text-align:right;">${data.overdue > 0 ? `<span class="num" style="color:var(--rpt-danger);">${data.overdue}</span>` : '<span class="muted">-</span>'}</td>
+              <td class="num">${data.avgDays}일</td>
+              <td style="text-align:right;" class="muted">${data.units}</td>
+            </tr>`;
+        });
+        bodyHTML += '</tbody></table>';
+
+      } else if (type === 'contractor') {
+        titleText = '시공사 실적 비교';
+        bodyHTML = `<table class="mini-table">
+          <thead><tr><th>시공사</th><th style="text-align:right;">배정</th><th style="text-align:right;">완료</th><th>처리율</th><th style="text-align:right;">초과</th><th style="text-align:right;">평균일</th><th style="text-align:right;">반려율</th></tr></thead><tbody>`;
+        S.contractors.sort((a,b) => b.assigned - a.assigned).forEach(c => {
+          const rate = Math.round(c.completed / c.assigned * 100);
+          const rateColor = rate >= 85 ? 'var(--rpt-ok)' : rate >= 70 ? 'var(--rpt-warn)' : 'var(--rpt-danger)';
+          bodyHTML += `
+            <tr onclick="openDrill('ctr_${c.name}')">
+              <td style="font-weight:500;">${c.name}</td>
+              <td style="text-align:right;" class="num">${c.assigned.toLocaleString()}</td>
+              <td style="text-align:right;" class="num">${c.completed.toLocaleString()}</td>
+              <td><div class="inline-bar"><div class="inline-bar-track"><div class="inline-bar-fill" style="width:${rate}%; background:${rateColor};"></div></div><span class="inline-bar-text" style="color:${rateColor};">${rate}%</span></div></td>
+              <td style="text-align:right;">${c.overdue > 0 ? `<span class="num" style="color:var(--rpt-danger);">${c.overdue}</span>` : '<span class="muted">-</span>'}</td>
+              <td style="text-align:right;" class="num">${c.avgDays}일</td>
+              <td style="text-align:right;" class="num">${c.rejectRate}%</td>
+            </tr>`;
+        });
+        bodyHTML += '</tbody></table>';
+
+      } else if (type === 'ai') {
+        titleText = 'AI 분류 성능 분석';
+        const ai = S.aiAccuracy;
+        const allTypes = Object.entries(ai).filter(([k]) => !['overall', 'lastWeek', 'target'].includes(k));
+
+        bodyHTML = `<div class="drill-stat-row">
+          <div class="drill-stat"><div class="ds-val">${S.total.toLocaleString()}</div><div class="ds-label">분류 건수</div></div>
+          <div class="drill-stat"><div class="ds-val">${ai.overall}%</div><div class="ds-label">전체 정확도</div></div>
+          <div class="drill-stat"><div class="ds-val">1.3초</div><div class="ds-label">평균 응답</div></div>
+        </div>`;
+        bodyHTML += `<h4 style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--gray-700);">공종별 정확도</h4>`;
+        bodyHTML += '<div class="hbar-group">';
+        allTypes.sort((a,b) => b[1] - a[1]).forEach(([wt, acc]) => {
+          const color = acc >= ai.target ? 'var(--rpt-ok)' : 'var(--rpt-warn)';
+          bodyHTML += `
+            <div class="hbar-row" style="cursor: default;">
+              <span class="hbar-label">${wt}</span>
+              <div class="hbar-track"><div class="hbar-fill" style="width: ${acc}%; background: ${color};"></div></div>
+              <span class="hbar-val" style="color: ${color};">${acc}%</span>
+            </div>`;
+        });
+        bodyHTML += '</div>';
+        bodyHTML += `<div style="margin-top: 12px; padding: 10px; background: var(--gray-50); border-radius: 4px; font-size: 12px; color: var(--gray-600);">
+          목표 정확도: ${ai.target}% / 지난 주: ${ai.lastWeek}% / 추이: ${ai.lastWeek > ai.overall ? '상승' : '하락'}
+        </div>`;
+
+      } else if (type.startsWith('status_')) {
+        const st = type.replace('status_', '');
+        const count = SC[st] || 0;
+        titleText = `${MOCK.statuses[st].label} 하자`;
+        bodyHTML = `<div class="drill-stat-row">
+          <div class="drill-stat"><div class="ds-val">${count.toLocaleString()}</div><div class="ds-label">${MOCK.statuses[st].label}</div></div>
+          <div class="drill-stat"><div class="ds-val">${Math.round(count / stats.total * 100)}%</div><div class="ds-label">비율</div></div>
+        </div>`;
+        bodyHTML += `<div style="padding: 16px; text-align: center; font-size: 13px; color: var(--gray-500);">
+          ${MOCK.statuses[st].label} 상태의 하자 ${count.toLocaleString()}건입니다.<br>
+          목록 페이지에서 상태 필터를 적용하여 상세 확인할 수 있습니다.
+        </div>`;
+        footerHTML = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDrill()">닫기</button>
+          <button class="btn btn-secondary btn-sm" onclick="location.href='defect-list.html'">목록에서 보기</button>
+        `;
+
+      } else {
+        titleText = '상세 정보';
+        bodyHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-400);">데이터를 불러오는 중...</div>';
+      }
+
+      title.textContent = titleText;
+      body.innerHTML = bodyHTML;
+      footer.innerHTML = footerHTML;
+      overlay.classList.add('active');
+    }
+
+    function closeDrill() {
+      document.getElementById('drillOverlay').classList.remove('active');
+    }
+
+    function handlePeriodChange() {
+      showToast('기간이 변경되었습니다. 데이터를 갱신합니다.');
+    }
+  </script>
+</body>
+</html>

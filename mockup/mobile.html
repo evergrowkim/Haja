@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>하자 이걸로 - 현장 관리자 (모바일)</title>
+  <style>
+    /* ============================================
+       Mobile Field Manager - Purpose-Built UI
+       Target: 375px (iPhone SE) ~ 428px (iPhone 14 Pro Max)
+       Touch targets: 44px minimum
+       ============================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gray-50: #f8f9fa;
+      --gray-100: #f1f3f5;
+      --gray-200: #e9ecef;
+      --gray-300: #dee2e6;
+      --gray-400: #ced4da;
+      --gray-500: #adb5bd;
+      --gray-600: #868e96;
+      --gray-700: #495057;
+      --gray-800: #343a40;
+      --gray-900: #212529;
+      --primary-500: #2b7de9;
+      --primary-600: #1a6dd8;
+      --d-danger: #9e3c3c;
+      --d-danger-bg: #faf5f5;
+      --d-ok: #4a7c6f;
+      --d-ok-bg: #f4f9f7;
+      --d-warn: #8a7340;
+      --d-warn-bg: #faf8f3;
+      --d-info: #4a6a8a;
+      --font: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', sans-serif;
+      --mono: 'SF Mono', 'Consolas', monospace;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: var(--font);
+      color: var(--gray-800);
+      background: var(--gray-100);
+      line-height: 1.5;
+      max-width: 428px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Mobile Header */
+    .m-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .m-header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    .m-header-sub {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .m-header-action {
+      font-size: 13px;
+      color: var(--primary-600);
+      background: none;
+      border: none;
+      font-family: var(--font);
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    /* Bottom Tab Bar */
+    .m-tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 428px;
+      background: #fff;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      z-index: 100;
+      padding-bottom: var(--safe-bottom);
+    }
+    .m-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 4px 6px;
+      cursor: pointer;
+      color: var(--gray-500);
+      font-size: 10px;
+      border: none;
+      background: none;
+      font-family: var(--font);
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .m-tab.active { color: var(--primary-600); }
+    .m-tab .tab-icon {
+      font-size: 20px;
+      margin-bottom: 2px;
+      line-height: 1;
+    }
+    .m-tab .tab-badge {
+      position: absolute;
+      top: 2px;
+      right: calc(50% - 16px);
+      background: var(--d-danger);
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 0 4px;
+      border-radius: 8px;
+      min-width: 16px;
+      text-align: center;
+      line-height: 14px;
+    }
+    /* Camera button (center, raised) */
+    .m-tab.camera-tab {
+      position: relative;
+    }
+    .m-tab.camera-tab .tab-icon-wrap {
+      width: 52px;
+      height: 52px;
+      background: var(--primary-600);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: -24px;
+      box-shadow: 0 2px 8px rgba(26,109,216,0.3);
+    }
+    .m-tab.camera-tab .tab-icon-wrap .tab-icon {
+      color: #fff;
+      font-size: 24px;
+    }
+
+    /* Page container */
+    .m-page {
+      display: none;
+      padding-bottom: 72px; /* tab bar height */
+    }
+    .m-page.active { display: block; }
+
+    /* Cards */
+    .m-card {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 14px 16px;
+    }
+    .m-card + .m-card { margin-top: 1px; }
+    .m-card-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+
+    /* Stat pills row */
+    .m-stat-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #fff;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .m-stat-pill {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      text-align: center;
+      min-width: 80px;
+      cursor: pointer;
+    }
+    .m-stat-pill.danger { background: var(--d-danger-bg); border-color: #e8d5d5; }
+    .m-stat-pill .sp-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-900);
+      font-family: var(--mono);
+      line-height: 1.1;
+    }
+    .m-stat-pill.danger .sp-value { color: var(--d-danger); }
+    .m-stat-pill .sp-label {
+      font-size: 10px;
+      color: var(--gray-500);
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    /* Task list item */
+    .m-task-item {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--gray-100);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      align-items: flex-start;
+    }
+    .m-task-item:active { background: var(--gray-50); }
+    .m-task-priority {
+      width: 4px;
+      border-radius: 2px;
+      align-self: stretch;
+      flex-shrink: 0;
+    }
+    .m-task-priority.p-critical { background: var(--d-danger); }
+    .m-task-priority.p-high { background: var(--d-warn); }
+    .m-task-priority.p-normal { background: var(--gray-300); }
+    .m-task-body { flex: 1; min-width: 0; }
+    .m-task-id {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--d-info);
+    }
+    .m-task-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-800);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .m-task-meta {
+      display: flex;
+      gap: 8px;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .m-task-days {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .m-task-days .td-value {
+      font-size: 15px;
+      font-weight: 700;
+      font-family: var(--mono);
+    }
+    .m-task-days .td-value.overdue { color: var(--d-danger); }
+    .m-task-days .td-value.warning { color: var(--d-warn); }
+    .m-task-days .td-value.normal { color: var(--gray-600); }
+    .m-task-days .td-label {
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+
+    /* Status badge (mobile) */
+    .m-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 3px;
+    }
+    .m-badge.pending { background: #f1f3f5; color: var(--gray-600); }
+    .m-badge.in-progress { background: var(--d-warn-bg); color: var(--d-warn); }
+    .m-badge.assigned { background: var(--d-info-bg); color: var(--d-info); }
+    .m-badge.completed { background: var(--d-ok-bg); color: var(--d-ok); }
+    .m-badge.rejected { background: var(--d-danger-bg); color: var(--d-danger); }
+    .m-badge.severity-3, .m-badge.severity-4 { background: var(--d-danger-bg); color: var(--d-danger); }
+
+    /* Section separator */
+    .m-section-sep {
+      padding: 10px 16px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--gray-100);
+    }
+
+    /* Camera / Register flow */
+    .m-camera-area {
+      background: var(--gray-900);
+      height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--gray-400);
+      position: relative;
+    }
+    .m-camera-area .camera-preview {
+      font-size: 48px;
+      opacity: 0.3;
+      margin-bottom: 8px;
+    }
+    .m-camera-area .camera-text {
+      font-size: 13px;
+    }
+    .m-camera-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 32px;
+    }
+    .m-shutter-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .m-shutter-btn:active { background: rgba(255,255,255,0.5); }
+    .m-gallery-btn, .m-flash-btn {
+      color: #fff;
+      font-size: 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      opacity: 0.7;
+    }
+    .m-photo-thumbs {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #fff;
+      overflow-x: auto;
+    }
+    .m-photo-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 6px;
+      background: var(--gray-200);
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .m-photo-thumb .thumb-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+    .m-photo-thumb .thumb-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .m-photo-thumb.add-more {
+      border: 2px dashed var(--gray-300);
+      background: var(--gray-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--gray-400);
+      cursor: pointer;
+    }
+
+    /* Location quick input */
+    .m-quick-input {
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .m-quick-input label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 4px;
+    }
+    .m-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .m-input-row select, .m-input-row input {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--gray-800);
+      font-family: var(--font);
+      -webkit-appearance: none;
+      min-height: 44px;
+    }
+    .m-input-row select:focus, .m-input-row input:focus {
+      outline: none;
+      border-color: var(--primary-500);
+    }
+
+    /* AI Result (mobile) */
+    .m-ai-result {
+      padding: 14px 16px;
+      background: var(--d-info-bg);
+      border-bottom: 1px solid var(--d-info-border, #d5dfe8);
+    }
+    .m-ai-result .ai-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--d-info);
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .m-ai-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .m-ai-tag {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+    }
+    .m-ai-tag .at-label {
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+    .m-ai-tag .at-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+    .m-ai-confidence {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--gray-600);
+    }
+    .m-ai-conf-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .m-ai-conf-fill {
+      height: 100%;
+      background: var(--d-ok);
+      border-radius: 2px;
+    }
+
+    /* Bottom action bar */
+    .m-action-bar {
+      position: fixed;
+      bottom: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 428px;
+      padding: 12px 16px;
+      padding-bottom: calc(12px + var(--safe-bottom));
+      background: #fff;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      gap: 8px;
+      z-index: 90;
+    }
+    .m-btn {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font);
+      min-height: 48px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .m-btn:active { opacity: 0.8; }
+    .m-btn-primary { background: var(--primary-600); color: #fff; }
+    .m-btn-secondary { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-300); }
+    .m-btn-danger { background: var(--d-danger-bg); color: var(--d-danger); border: 1px solid #e8d5d5; }
+
+    /* Inspect detail (mobile) */
+    .m-detail-photos {
+      display: flex;
+      gap: 2px;
+      height: 200px;
+      background: var(--gray-200);
+      overflow-x: auto;
+    }
+    .m-detail-photo {
+      flex: 0 0 auto;
+      width: 200px;
+      height: 200px;
+      background: var(--gray-300);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+    .m-detail-info {
+      padding: 12px 16px;
+      background: #fff;
+    }
+    .m-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: 13px;
+    }
+    .m-detail-row:last-child { border-bottom: none; }
+    .m-detail-row .dr-label {
+      color: var(--gray-500);
+      flex-shrink: 0;
+    }
+    .m-detail-row .dr-value {
+      color: var(--gray-800);
+      font-weight: 500;
+      text-align: right;
+    }
+
+    /* Toast */
+    .m-toast {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--gray-900);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 300;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+    }
+    .m-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Filter chips */
+    .m-filter-chips {
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .m-chip {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      font-size: 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--gray-600);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .m-chip.active {
+      background: var(--gray-800);
+      color: #fff;
+      border-color: var(--gray-800);
+    }
+
+    /* Empty state */
+    .m-empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--gray-500);
+      font-size: 14px;
+    }
+
+    /* Project banner */
+    .m-project-banner {
+      padding: 8px 16px;
+      background: var(--gray-900);
+      color: var(--gray-300);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .m-project-banner strong {
+      color: #fff;
+    }
+
+    /* Swipe action hint */
+    .m-swipe-hint {
+      text-align: center;
+      font-size: 10px;
+      color: var(--gray-400);
+      padding: 6px;
+    }
+
+    /* Step indicator */
+    .m-steps {
+      display: flex;
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      gap: 4px;
+    }
+    .m-step {
+      flex: 1;
+      height: 3px;
+      background: var(--gray-200);
+      border-radius: 2px;
+    }
+    .m-step.done { background: var(--d-ok); }
+    .m-step.active { background: var(--primary-500); }
+
+    /* Description input */
+    .m-desc-area {
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    .m-desc-area textarea {
+      width: 100%;
+      min-height: 60px;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      font-family: var(--font);
+      resize: vertical;
+      color: var(--gray-800);
+    }
+    .m-desc-area textarea:focus {
+      outline: none;
+      border-color: var(--primary-500);
+    }
+    .m-desc-area textarea::placeholder {
+      color: var(--gray-400);
+    }
+
+    /* Notification dot on tab */
+    .m-notif-banner {
+      padding: 10px 16px;
+      background: var(--d-danger-bg);
+      border-bottom: 1px solid #e8d5d5;
+      font-size: 12px;
+      color: var(--d-danger);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .m-notif-banner strong {
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Project Banner -->
+  <div class="m-project-banner">
+    <span><strong>래미안 원베일리 2차</strong> RW-2024</span>
+    <span>김현수 관리자</span>
+  </div>
+
+  <!-- ============================================
+       PAGE 1: HOME (Summary + Quick Access)
+       ============================================ -->
+  <div class="m-page active" id="page-home">
+    <div class="m-header">
+      <div>
+        <div class="m-header-title">현장 관리</div>
+        <div class="m-header-sub">2026.01.30 (목)</div>
+      </div>
+      <button class="m-header-action" onclick="mToast('알림 확인')">알림 3</button>
+    </div>
+
+    <!-- Urgent banner -->
+    <div class="m-notif-banner">
+      <span style="font-weight: 700;">!</span>
+      SLA 초과 <strong>342</strong>건 / 오늘 만료 예정 <strong>12</strong>건
+    </div>
+
+    <!-- Stats -->
+    <div class="m-stat-row">
+      <div class="m-stat-pill" onclick="switchTab(1)">
+        <div class="sp-value">47</div>
+        <div class="sp-label">오늘 접수</div>
+      </div>
+      <div class="m-stat-pill" onclick="switchTab(1)">
+        <div class="sp-value">23</div>
+        <div class="sp-label">내 배정</div>
+      </div>
+      <div class="m-stat-pill danger" onclick="switchTab(1)">
+        <div class="sp-value">8</div>
+        <div class="sp-label">SLA 초과</div>
+      </div>
+      <div class="m-stat-pill" onclick="switchTab(3)">
+        <div class="sp-value">5</div>
+        <div class="sp-label">검수 대기</div>
+      </div>
+      <div class="m-stat-pill">
+        <div class="sp-value">89%</div>
+        <div class="sp-label">완료율</div>
+      </div>
+    </div>
+
+    <!-- My urgent tasks -->
+    <div class="m-section-sep">긴급 처리 필요</div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-critical"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260128-0004</div>
+        <div class="m-task-title">102동 801호 욕실 - 급배수 누수</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-4">긴급</span>
+          <span class="m-badge in-progress">처리중</span>
+          <span>한솔설비</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value overdue">D+3</div>
+        <div class="td-label">SLA 임박</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-critical"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260125-0187</div>
+        <div class="m-task-title">102동 1001호 욕실 - 급배수 누수</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-4">긴급</span>
+          <span class="m-badge assigned">배정완료</span>
+          <span>한솔설비</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value overdue">D+6</div>
+        <div class="td-label">SLA 초과</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-high"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260118-0067</div>
+        <div class="m-task-title">102동 901호 욕실 - 급배수 누수 (반려)</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-4">긴급</span>
+          <span class="m-badge rejected">반려</span>
+          <span>재배정 필요</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value overdue">D+13</div>
+        <div class="td-label">반려 D+5</div>
+      </div>
+    </div>
+
+    <!-- Recent registrations -->
+    <div class="m-section-sep">최근 등록 (오늘)</div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260130-0010</div>
+        <div class="m-task-title">103동 1001호 거실 - 도장 오염</div>
+        <div class="m-task-meta">
+          <span class="m-badge pending">접수대기</span>
+          <span>오전 08:50</span>
+        </div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260130-0012</div>
+        <div class="m-task-title">101동 901호 거실 - 도장 기포/들뜸</div>
+        <div class="m-task-meta">
+          <span class="m-badge pending">접수대기</span>
+          <span>오후 02:05</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       PAGE 2: TASK LIST (My assigned work queue)
+       ============================================ -->
+  <div class="m-page" id="page-tasks">
+    <div class="m-header">
+      <div>
+        <div class="m-header-title">작업 목록</div>
+        <div class="m-header-sub">배정된 작업 관리</div>
+      </div>
+      <button class="m-header-action" onclick="mToast('정렬 변경')">우선순위순</button>
+    </div>
+
+    <div class="m-filter-chips">
+      <button class="m-chip active" onclick="setChip(this)">전체 23</button>
+      <button class="m-chip" onclick="setChip(this)">긴급 3</button>
+      <button class="m-chip" onclick="setChip(this)">SLA 초과 8</button>
+      <button class="m-chip" onclick="setChip(this)">배정완료 7</button>
+      <button class="m-chip" onclick="setChip(this)">처리중 12</button>
+      <button class="m-chip" onclick="setChip(this)">반려 1</button>
+    </div>
+
+    <div class="m-swipe-hint">좌우 스와이프: 상태 변경</div>
+
+    <!-- Tasks -->
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-critical"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260128-0004</div>
+        <div class="m-task-title">102동 801호 욕실 - 급배수 누수</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-4">긴급</span>
+          <span class="m-badge in-progress">처리중</span>
+          <span>한솔설비 / 약속일 01.31</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value overdue">D+3</div>
+        <div class="td-label">내일 만료</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-critical"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260125-0187</div>
+        <div class="m-task-title">102동 1001호 욕실 - 급배수 누수</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-4">긴급</span>
+          <span class="m-badge assigned">배정완료</span>
+          <span>한솔설비</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value overdue">D+6</div>
+        <div class="td-label">SLA 초과</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-high"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260122-0134</div>
+        <div class="m-task-title">105동 1502호 발코니 - 방수 균열</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-3">중대</span>
+          <span class="m-badge in-progress">처리중</span>
+          <span>한양방수</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value overdue">D+9</div>
+        <div class="td-label">SLA 초과</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-high"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260126-0201</div>
+        <div class="m-task-title">103동 1801호 거실 - 창호 외풍</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-3">중대</span>
+          <span class="m-badge in-progress">처리중</span>
+          <span>대림창호</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value warning">D+5</div>
+        <div class="td-label">2차 민원</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260128-0001</div>
+        <div class="m-task-title">101동 301호 거실 - 도장 균열</div>
+        <div class="m-task-meta">
+          <span class="m-badge severity-3">중대</span>
+          <span class="m-badge in-progress">처리중</span>
+          <span>대한도장 / 약속일 02.05</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value normal">D+3</div>
+        <div class="td-label">기한 이내</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260128-0002</div>
+        <div class="m-task-title">101동 502호 안방 - 미장 들뜸</div>
+        <div class="m-task-meta">
+          <span class="m-badge assigned">배정완료</span>
+          <span>신우미장 / 약속일 02.07</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value normal">D+3</div>
+        <div class="td-label">기한 이내</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       PAGE 3: CAMERA / REGISTER (Camera-first)
+       ============================================ -->
+  <div class="m-page" id="page-register">
+    <div class="m-header" style="background: var(--gray-900); border: none;">
+      <button class="m-header-action" style="color: #fff;" onclick="switchTab(0)">취소</button>
+      <div style="text-align: center;">
+        <div class="m-header-title" style="color: #fff;">하자 등록</div>
+      </div>
+      <button class="m-header-action" style="color: #fff; font-weight: 600;" onclick="goRegStep(2)">다음</button>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="m-steps" id="regSteps">
+      <div class="m-step active"></div>
+      <div class="m-step"></div>
+      <div class="m-step"></div>
+    </div>
+
+    <!-- Step 1: Camera -->
+    <div id="regStep1">
+      <div class="m-camera-area" onclick="simulateCapture()">
+        <div class="camera-preview">&#9634;</div>
+        <div class="camera-text">촬영 영역을 터치하세요</div>
+        <div class="m-camera-controls">
+          <button class="m-gallery-btn" onclick="event.stopPropagation(); simulateCapture()">&#9633;</button>
+          <button class="m-shutter-btn" onclick="event.stopPropagation(); simulateCapture()"></button>
+          <button class="m-flash-btn" onclick="event.stopPropagation(); mToast('플래시 전환')">&#9788;</button>
+        </div>
+      </div>
+      <div class="m-photo-thumbs" id="photoThumbs">
+        <div class="m-photo-thumb">
+          <div class="thumb-placeholder">사진 1</div>
+          <button class="thumb-remove">X</button>
+        </div>
+        <div class="m-photo-thumb">
+          <div class="thumb-placeholder">사진 2</div>
+          <button class="thumb-remove">X</button>
+        </div>
+        <div class="m-photo-thumb add-more" onclick="simulateCapture()">+</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Location + Description (hidden initially) -->
+    <div id="regStep2" style="display: none;">
+      <div class="m-quick-input">
+        <label>위치</label>
+        <div class="m-input-row">
+          <select>
+            <option>101동</option>
+            <option>102동</option>
+            <option selected>103동</option>
+          </select>
+          <input type="text" placeholder="호수" value="1001">
+        </div>
+      </div>
+      <div class="m-quick-input">
+        <div class="m-input-row">
+          <select>
+            <option selected>거실</option>
+            <option>안방</option>
+            <option>주방</option>
+            <option>욕실</option>
+            <option>발코니</option>
+            <option>현관</option>
+          </select>
+          <select>
+            <option selected>천장</option>
+            <option>벽</option>
+            <option>바닥</option>
+            <option>창</option>
+          </select>
+        </div>
+      </div>
+      <div class="m-desc-area">
+        <label style="display: block; font-size: 12px; font-weight: 600; color: var(--gray-700); margin-bottom: 4px;">하자 설명 (선택)</label>
+        <textarea placeholder="하자 내용을 간단히 입력하세요. AI가 자동으로 분류합니다."></textarea>
+      </div>
+    </div>
+
+    <!-- Step 3: AI Classification + Confirm (hidden initially) -->
+    <div id="regStep3" style="display: none;">
+      <div class="m-ai-result">
+        <div class="ai-label">AI 자동 분류</div>
+        <div class="m-ai-tags">
+          <div class="m-ai-tag">
+            <span class="at-label">공종</span>
+            <span class="at-value">도장</span>
+          </div>
+          <div class="m-ai-tag">
+            <span class="at-label">유형</span>
+            <span class="at-value">오염</span>
+          </div>
+          <div class="m-ai-tag">
+            <span class="at-label">심각도</span>
+            <span class="at-value">경미</span>
+          </div>
+        </div>
+        <div class="m-ai-confidence">
+          <span>AI 신뢰도</span>
+          <div class="m-ai-conf-bar">
+            <div class="m-ai-conf-fill" style="width: 91%;"></div>
+          </div>
+          <span style="font-family: var(--mono); font-weight: 600;">91%</span>
+        </div>
+      </div>
+
+      <!-- Confirm summary -->
+      <div class="m-detail-info">
+        <div class="m-detail-row">
+          <span class="dr-label">위치</span>
+          <span class="dr-value">103동 1001호 거실 천장</span>
+        </div>
+        <div class="m-detail-row">
+          <span class="dr-label">공종</span>
+          <span class="dr-value">도장</span>
+        </div>
+        <div class="m-detail-row">
+          <span class="dr-label">유형</span>
+          <span class="dr-value">오염</span>
+        </div>
+        <div class="m-detail-row">
+          <span class="dr-label">심각도</span>
+          <span class="dr-value">경미</span>
+        </div>
+        <div class="m-detail-row">
+          <span class="dr-label">사진</span>
+          <span class="dr-value">2장</span>
+        </div>
+      </div>
+
+      <div style="padding: 16px; text-align: center;">
+        <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 8px;">AI 분류가 맞지 않으면 수정할 수 있습니다</div>
+        <button class="m-btn m-btn-secondary" style="flex: none; display: inline-block; width: auto; padding: 8px 20px;" onclick="mToast('수정 화면으로 이동합니다')">분류 수정</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       PAGE 4: INSPECT (Verification workflow)
+       ============================================ -->
+  <div class="m-page" id="page-inspect">
+    <div class="m-header">
+      <div>
+        <div class="m-header-title">검수 대기</div>
+        <div class="m-header-sub">처리 완료된 하자 검수</div>
+      </div>
+      <button class="m-header-action">총 5건</button>
+    </div>
+
+    <!-- Inspection queue -->
+    <div class="m-task-item" onclick="showInspectDetail()">
+      <div class="m-task-priority p-high"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260127-0003</div>
+        <div class="m-task-title">102동 1201호 주방 - 타일 파손</div>
+        <div class="m-task-meta">
+          <span class="m-badge completed">처리완료</span>
+          <span>동아타일 / 처리일 01.29</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value warning">D+2</div>
+        <div class="td-label">검수 대기</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showInspectDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260125-0089</div>
+        <div class="m-task-title">101동 1802호 안방 - 도장 탈락</div>
+        <div class="m-task-meta">
+          <span class="m-badge completed">처리완료</span>
+          <span>대한도장 / 처리일 01.28</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value warning">D+3</div>
+        <div class="td-label">검수 대기</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showInspectDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260124-0072</div>
+        <div class="m-task-title">103동 502호 욕실 - 타일 줄눈불량</div>
+        <div class="m-task-meta">
+          <span class="m-badge completed">처리완료</span>
+          <span>동아타일 / 처리일 01.27</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value normal">D+4</div>
+        <div class="td-label">검수 대기</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showInspectDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260123-0058</div>
+        <div class="m-task-title">105동 701호 거실 - 전기 접촉불량</div>
+        <div class="m-task-meta">
+          <span class="m-badge completed">처리완료</span>
+          <span>삼성전기 / 처리일 01.28</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value normal">D+3</div>
+        <div class="td-label">검수 대기</div>
+      </div>
+    </div>
+    <div class="m-task-item" onclick="showInspectDetail()">
+      <div class="m-task-priority p-normal"></div>
+      <div class="m-task-body">
+        <div class="m-task-id">260122-0045</div>
+        <div class="m-task-title">104동 1201호 현관 - 석공 오염</div>
+        <div class="m-task-meta">
+          <span class="m-badge completed">처리완료</span>
+          <span>명성석공 / 처리일 01.26</span>
+        </div>
+      </div>
+      <div class="m-task-days">
+        <div class="td-value normal">D+5</div>
+        <div class="td-label">검수 대기</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       PAGE 5: MORE (Settings, Profile)
+       ============================================ -->
+  <div class="m-page" id="page-more">
+    <div class="m-header">
+      <div class="m-header-title">더보기</div>
+    </div>
+
+    <div class="m-card" style="display: flex; align-items: center; gap: 12px; padding: 16px;">
+      <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--gray-600); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: 600;">김</div>
+      <div>
+        <div style="font-size: 15px; font-weight: 600; color: var(--gray-900);">김현수</div>
+        <div style="font-size: 12px; color: var(--gray-500);">점검 관리자 / 한솔건설점검</div>
+      </div>
+    </div>
+
+    <div class="m-section-sep">화면 바로가기</div>
+    <div class="m-card" style="cursor: pointer;" onclick="location.href='dashboard.html'">
+      <div style="font-size: 14px; color: var(--gray-700);">대시보드 (데스크탑)</div>
+      <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">전체 통계 및 AI 분석</div>
+    </div>
+    <div class="m-card" style="cursor: pointer;" onclick="location.href='reports.html'">
+      <div style="font-size: 14px; color: var(--gray-700);">보고서/통계</div>
+      <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">상세 리포트 및 드릴다운</div>
+    </div>
+    <div class="m-card" style="cursor: pointer;" onclick="location.href='defect-list.html'">
+      <div style="font-size: 14px; color: var(--gray-700);">하자 전체 목록</div>
+      <div style="font-size: 11px; color: var(--gray-500); margin-top: 2px;">필터 검색 및 일괄 처리</div>
+    </div>
+
+    <div class="m-section-sep">설정</div>
+    <div class="m-card" style="cursor: pointer;" onclick="mToast('알림 설정')">
+      <div style="font-size: 14px; color: var(--gray-700);">알림 설정</div>
+    </div>
+    <div class="m-card" style="cursor: pointer;" onclick="mToast('프로젝트 변경')">
+      <div style="font-size: 14px; color: var(--gray-700);">프로젝트 변경</div>
+    </div>
+    <div class="m-card" style="cursor: pointer;">
+      <div style="font-size: 14px; color: var(--gray-700);">오프라인 데이터 동기화</div>
+      <div style="font-size: 11px; color: var(--d-ok); margin-top: 2px;">마지막 동기화: 30초 전</div>
+    </div>
+    <div class="m-card" style="cursor: pointer;">
+      <div style="font-size: 14px; color: var(--d-danger);">로그아웃</div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       DETAIL OVERLAY (Task Detail)
+       ============================================ -->
+  <div id="detailOverlay" style="display: none; position: fixed; inset: 0; z-index: 200; background: var(--gray-100);">
+    <div class="m-header" style="position: sticky; top: 0; z-index: 51;">
+      <button class="m-header-action" onclick="closeDetail()" style="color: var(--gray-700);">&#8592; 뒤로</button>
+      <div style="text-align: center;">
+        <div class="m-header-title" style="font-size: 14px;">260128-0004</div>
+      </div>
+      <button class="m-header-action" onclick="mToast('공유')">공유</button>
+    </div>
+
+    <!-- Photos -->
+    <div class="m-detail-photos">
+      <div class="m-detail-photo">사진 1</div>
+      <div class="m-detail-photo">사진 2</div>
+      <div class="m-detail-photo">사진 3 (처리 전)</div>
+      <div class="m-detail-photo">사진 4 (처리 후)</div>
+    </div>
+
+    <!-- Status + Severity -->
+    <div style="padding: 12px 16px; background: #fff; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--gray-200);">
+      <span class="m-badge in-progress" style="font-size: 12px; padding: 4px 10px;">처리중</span>
+      <span class="m-badge severity-4" style="font-size: 12px; padding: 4px 10px;">긴급</span>
+      <span style="margin-left: auto; font-size: 12px; color: var(--d-danger); font-weight: 600; font-family: var(--mono);">D+3</span>
+    </div>
+
+    <!-- Description -->
+    <div class="m-card">
+      <div style="font-size: 15px; font-weight: 500; color: var(--gray-800); margin-bottom: 6px;">욕실 천장에서 지속적 누수 발생</div>
+      <div style="font-size: 13px; color: var(--gray-600); line-height: 1.6;">윗층 배관 문제 의심. 처리 담당: 한솔설비.</div>
+    </div>
+
+    <!-- Info grid -->
+    <div class="m-detail-info">
+      <div class="m-detail-row">
+        <span class="dr-label">위치</span>
+        <span class="dr-value">102동 801호 욕실 천장</span>
+      </div>
+      <div class="m-detail-row">
+        <span class="dr-label">공종 / 유형</span>
+        <span class="dr-value">설비(급배수) / 누수</span>
+      </div>
+      <div class="m-detail-row">
+        <span class="dr-label">시공사</span>
+        <span class="dr-value">한솔설비</span>
+      </div>
+      <div class="m-detail-row">
+        <span class="dr-label">등록일</span>
+        <span class="dr-value">2026.01.28 08:05</span>
+      </div>
+      <div class="m-detail-row">
+        <span class="dr-label">약속일</span>
+        <span class="dr-value" style="color: var(--d-danger);">2026.01.31 (내일)</span>
+      </div>
+      <div class="m-detail-row">
+        <span class="dr-label">등록자</span>
+        <span class="dr-value">최영호</span>
+      </div>
+    </div>
+
+    <!-- AI Analysis -->
+    <div class="m-section-sep">AI 분석</div>
+    <div class="m-card">
+      <div style="font-size: 12px; color: var(--gray-600); line-height: 1.6;">
+        이 하자는 <strong>102동 8~12층</strong>에서 집중 발생하는 급배수 누수 패턴에 해당합니다.
+        공통 배관 라인 점검이 권장됩니다.
+      </div>
+      <div style="font-size: 11px; color: var(--d-info); margin-top: 6px;">유사 사례 3건 | 평균 처리 2.5일</div>
+    </div>
+
+    <!-- Actions -->
+    <div style="position: sticky; bottom: 0; padding: 12px 16px; background: #fff; border-top: 1px solid var(--gray-200); display: flex; gap: 8px;">
+      <button class="m-btn m-btn-danger" style="flex: 0.5;" onclick="mToast('반려 처리')">반려</button>
+      <button class="m-btn m-btn-secondary" style="flex: 0.5;" onclick="mToast('시공사에 독촉 알림 발송')">독촉</button>
+      <button class="m-btn m-btn-primary" onclick="mToast('처리 완료 보고')">처리 완료</button>
+    </div>
+  </div>
+
+  <!-- ============================================
+       INSPECT DETAIL OVERLAY
+       ============================================ -->
+  <div id="inspectOverlay" style="display: none; position: fixed; inset: 0; z-index: 200; background: var(--gray-100);">
+    <div class="m-header" style="position: sticky; top: 0; z-index: 51;">
+      <button class="m-header-action" onclick="closeInspect()" style="color: var(--gray-700);">&#8592; 뒤로</button>
+      <div style="text-align: center;">
+        <div class="m-header-title" style="font-size: 14px;">검수 확인</div>
+      </div>
+      <div style="width: 60px;"></div>
+    </div>
+
+    <div class="m-detail-photos">
+      <div class="m-detail-photo">처리 전 사진</div>
+      <div class="m-detail-photo">처리 후 사진</div>
+    </div>
+
+    <div style="padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--gray-200);">
+      <div style="font-size: 14px; font-weight: 600; color: var(--gray-800);">102동 1201호 주방 - 타일 파손</div>
+      <div style="font-size: 12px; color: var(--gray-500); margin-top: 2px;">260127-0003 | 동아타일 | 01.29 처리</div>
+    </div>
+
+    <div class="m-section-sep">시공사 처리 보고</div>
+    <div class="m-card">
+      <div style="font-size: 13px; color: var(--gray-700); line-height: 1.6;">
+        파손된 타일 1매 교체 완료. 줄눈 마감까지 처리.
+        동일 규격 타일 사용하여 색상 차이 없음.
+      </div>
+    </div>
+
+    <div class="m-section-sep">검수 사진 촬영</div>
+    <div style="padding: 16px; background: #fff;">
+      <div class="m-photo-thumb add-more" style="width: 100%; height: 80px; border-radius: 8px;" onclick="mToast('검수 사진 촬영')">+ 검수 사진 촬영</div>
+    </div>
+
+    <div class="m-section-sep">검수 의견</div>
+    <div class="m-desc-area">
+      <textarea placeholder="검수 결과를 입력하세요 (선택)"></textarea>
+    </div>
+
+    <!-- Actions -->
+    <div style="position: sticky; bottom: 0; padding: 12px 16px; background: #fff; border-top: 1px solid var(--gray-200); display: flex; gap: 8px;">
+      <button class="m-btn m-btn-danger" onclick="mToast('반려 처리되었습니다.'); setTimeout(closeInspect, 800);">반려 (재시공)</button>
+      <button class="m-btn m-btn-primary" onclick="mToast('검수 완료되었습니다.'); setTimeout(closeInspect, 800);">검수 승인</button>
+    </div>
+  </div>
+
+  <!-- Register action bar (for step navigation) -->
+  <div class="m-action-bar" id="regActionBar" style="display: none;">
+    <button class="m-btn m-btn-secondary" id="regPrevBtn" onclick="goRegStep('prev')">이전</button>
+    <button class="m-btn m-btn-primary" id="regNextBtn" onclick="goRegStep('next')">다음</button>
+  </div>
+
+  <!-- Bottom Tab Bar -->
+  <div class="m-tab-bar" id="tabBar">
+    <button class="m-tab active" onclick="switchTab(0)">
+      <span class="tab-icon">&#9632;</span>
+      <span>현장 관리</span>
+    </button>
+    <button class="m-tab" onclick="switchTab(1)">
+      <span class="tab-icon">&#9776;</span>
+      <span>작업 목록</span>
+      <span class="tab-badge">8</span>
+    </button>
+    <button class="m-tab camera-tab" onclick="switchTab(2)">
+      <div class="tab-icon-wrap">
+        <span class="tab-icon">+</span>
+      </div>
+      <span style="margin-top: 4px;">등록</span>
+    </button>
+    <button class="m-tab" onclick="switchTab(3)">
+      <span class="tab-icon">&#10003;</span>
+      <span>검수</span>
+      <span class="tab-badge">5</span>
+    </button>
+    <button class="m-tab" onclick="switchTab(4)">
+      <span class="tab-icon">&#8942;</span>
+      <span>더보기</span>
+    </button>
+  </div>
+
+  <!-- Toast -->
+  <div class="m-toast" id="mToast"></div>
+
+  <script>
+    const pages = ['page-home', 'page-tasks', 'page-register', 'page-inspect', 'page-more'];
+    let currentRegStep = 1;
+
+    function switchTab(idx) {
+      // Show corresponding page
+      pages.forEach((p, i) => {
+        document.getElementById(p).classList.toggle('active', i === idx);
+      });
+
+      // Update tabs
+      const tabs = document.querySelectorAll('.m-tab');
+      tabs.forEach((t, i) => {
+        t.classList.toggle('active', i === idx);
+      });
+
+      // Show/hide register action bar
+      const regBar = document.getElementById('regActionBar');
+      if (idx === 2) {
+        regBar.style.display = 'flex';
+        currentRegStep = 1;
+        updateRegStep();
+      } else {
+        regBar.style.display = 'none';
+      }
+
+      // Close overlays
+      closeDetail();
+      closeInspect();
+    }
+
+    function goRegStep(dir) {
+      if (dir === 'next' && currentRegStep < 3) currentRegStep++;
+      else if (dir === 'prev' && currentRegStep > 1) currentRegStep--;
+      else if (typeof dir === 'number') currentRegStep = dir;
+
+      if (currentRegStep === 3) {
+        // Simulate AI processing
+        document.getElementById('regNextBtn').textContent = '접수 완료';
+        document.getElementById('regNextBtn').onclick = function() {
+          mToast('하자가 접수되었습니다.');
+          setTimeout(() => switchTab(0), 800);
+        };
+      } else {
+        document.getElementById('regNextBtn').textContent = '다음';
+        document.getElementById('regNextBtn').onclick = function() { goRegStep('next'); };
+      }
+
+      updateRegStep();
+    }
+
+    function updateRegStep() {
+      document.getElementById('regStep1').style.display = currentRegStep === 1 ? 'block' : 'none';
+      document.getElementById('regStep2').style.display = currentRegStep === 2 ? 'block' : 'none';
+      document.getElementById('regStep3').style.display = currentRegStep === 3 ? 'block' : 'none';
+
+      const steps = document.querySelectorAll('#regSteps .m-step');
+      steps.forEach((s, i) => {
+        s.className = 'm-step';
+        if (i + 1 < currentRegStep) s.classList.add('done');
+        else if (i + 1 === currentRegStep) s.classList.add('active');
+      });
+
+      // Prev button
+      document.getElementById('regPrevBtn').style.display = currentRegStep > 1 ? 'block' : 'none';
+    }
+
+    function simulateCapture() {
+      mToast('사진이 촬영되었습니다.');
+    }
+
+    function showDetail() {
+      document.getElementById('detailOverlay').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetail() {
+      document.getElementById('detailOverlay').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function showInspectDetail() {
+      document.getElementById('inspectOverlay').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeInspect() {
+      document.getElementById('inspectOverlay').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function setChip(el) {
+      document.querySelectorAll('.m-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function mToast(msg) {
+      const toast = document.getElementById('mToast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>
